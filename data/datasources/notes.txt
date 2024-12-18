@@ -1,0 +1,5 @@
+Sample datasources based on DeTTeCT framework:
+
+https://github.com/rabobank-cdc/DeTTECT
+License: GPL-3.0
+
