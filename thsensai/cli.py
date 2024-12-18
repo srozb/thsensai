@@ -75,7 +75,7 @@ def analyze(  # noqa: R0913
     output_dir: str = typer.Option(
         "./",
         "--output-dir",
-        "-o",
+        "-d",
         help="Location of the report directory",
     ),
     report: bool = typer.Option(

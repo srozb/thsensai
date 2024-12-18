@@ -159,7 +159,7 @@ def write_report(iocs_obj: IOCs, source: str, params: Dict[str, Any], output_dir
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     with open(f"{output_dir}/{report_name}", "w", encoding="utf-8") as f_dst:
-        f_dst.write("\n".join(csv_output))
+        f_dst.write(csv_output)
 
 
 def extract_iocs(
