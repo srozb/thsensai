@@ -30,7 +30,7 @@ from rich.progress import (
 
 from thsensai.knowledge import acquire_intel
 from thsensai.test.test_intel import benchmark_models
-from thsensai.hunter import extract_iocs
+from thsensai.hunter import extract_iocs, write_report
 
 app = typer.Typer(help="Sensai: Threat Hunting and Intelligence Tool")
 
@@ -72,28 +72,73 @@ def analyze(  # noqa: R0913
         "-c",
         help="Optional css selector value to limit the html parsing",
     ),
+    output_dir: str = typer.Option(
+        "./",
+        "--output-dir",
+        "-o",
+        help="Location of the report directory",
+    ),
+    report: bool = typer.Option(
+        False,
+        "--write-report",
+        "-r",
+        help="Create a report file",
+    ),
 ):
     """
-    Analyze threat intelligence from a source.
+    Analyze threat intelligence and extract Indicators of Compromise (IOCs).
 
-    This command extracts Indicators of Compromise (IOCs) from the specified input
-    (file or URL) using the specified language model. It supports optional document
-    chunking and advanced parsing via CSS selectors.
+    This command processes a specified source (file path or URL) to extract IOCs using 
+    a Large Language Model (LLM). It supports document chunking to manage large inputs 
+    and provides options for advanced HTML parsing via CSS selectors. Extracted IOCs 
+    are displayed in a table and optionally saved as a report.
 
     Args:
-        source (str): Input file path or URL for processing.
-        model (str): Language model to use for inference.
-        chunk_size (int): Size of document chunks in characters.
-        num_predict (int): Maximum tokens to predict; -1 for unlimited.
-        num_ctx (int): Context window size for the language model.
-        css_selector (str, optional): CSS selector to filter HTML content.
+        source (str): The input file path or URL for processing.
+        model (str): The LLM model to use for IOC extraction.
+        chunk_size (int): The size of document chunks in characters. Larger sizes 
+            may improve context for analysis but can exceed model limits.
+        chunk_overlap (int): The overlap size between consecutive chunks to ensure 
+            context continuity across chunks.
+        num_predict (int): The maximum number of tokens to predict when generating 
+            text. Use -1 for unlimited prediction.
+        num_ctx (int): The size of the context window for the LLM. Determines how 
+            much of the input can be considered for predictions.
+        css_selector (str): An optional CSS selector to filter HTML content before 
+            processing. Defaults to "body" for extracting the main content.
+        output_dir (str): The directory to save the generated report. Defaults to the 
+            current working directory ("./").
+        report (bool): Whether to save the extracted IOCs as a report file. If True, 
+            a CSV file will be created in the specified `output_dir`.
+
+    Returns:
+        None
+
+    Notes:
+        - The function uses chunking to handle large documents, ensuring compatibility 
+          with the LLM's context size limitations.
+        - Extracted IOCs are displayed in a formatted table using the Rich library.
+        - If the `--write-report` option is specified, the extracted IOCs are saved 
+          as a CSV report file.
+        - Progress of the IOC extraction process is tracked and displayed using Rich's 
+          progress bar.
+
+    Example:
+        To analyze a local file and save the report:
+            $ sensai analyze sample_file.txt --model "example-llm-model" \\
+                --chunk-size 2600 --chunk-overlap 300 --write-report
+
+        To analyze a URL and print results without saving:
+            $ sensai analyze https://example.com/intel_report.html --model "example-llm-model"
+
     """
     intel = acquire_intel(source, css_selector)
     params = {
         "chunk_size": chunk_size,
         "chunk_overlap": chunk_overlap,
-        "num_predict": num_predict, 
-        "num_ctx": num_ctx}
+        "num_predict": num_predict,
+        "num_ctx": num_ctx,
+    }
     with Progress(
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
@@ -115,6 +160,8 @@ def analyze(  # noqa: R0913
     rp("")
     rp(table)
 
+    if report:
+        write_report(iocs, source, params, output_dir)
 
 
 @app.command()
@@ -140,13 +187,44 @@ def benchmark(
     ),
 ):
     """
-    Run a benchmark on multiple language models.
+    Run benchmarks on multiple language models to evaluate performance.
 
-    This command evaluates multiple models against test cases, measuring their
-    performance in extracting relevant threat intelligence.
+    This command tests a list of specified language models using different chunk 
+    size and overlap configurations. It evaluates their effectiveness in extracting 
+    relevant threat intelligence and generates a detailed report.
 
     Args:
-        models (str): Comma-separated list of models in the format `name:size`.
+        models (str): A comma-separated list of language models in the format 
+            `name:size` (e.g., `qwen2.5:32b`).
+        chunk_sizes (str): A comma-separated list of chunk sizes in characters 
+            (e.g., `2400,3200`). Each chunk size represents the size of the 
+            input data split for processing.
+        chunk_overlaps (str): A comma-separated list of chunk overlap sizes in 
+            characters (e.g., `150,300`). Overlap sizes determine the continuity 
+            between consecutive chunks.
+
+    Returns:
+        None
+
+    Notes:
+        - Benchmarks are performed by varying model configurations, chunk sizes, 
+          and chunk overlaps. This helps evaluate model performance under 
+          different conditions.
+        - Results are displayed in the console as a Markdown report and saved 
+          to `docs/benchmark.md` for future reference.
+
+    Example:
+        To benchmark multiple models with various configurations:
+            $ sensai benchmark \\
+                --models "qwen2.5:32b,qwen2.5:14b" \\
+                --chunk-size "2400,3200" \\
+                --chunk-overlap "150,300"
+
+    Output:
+        The command generates a Markdown report detailing:
+        - Model performance for each chunk size and overlap configuration.
+        - Summary of results to identify optimal model and configuration.
+
     """
     model_list = models.split(",")
     chunk_size_list = [int(size) for size in chunk_sizes.split(",")]
@@ -159,7 +237,7 @@ def benchmark(
     console = Console()
     console.print(Markdown(report))
 
-    with open("docs/benchmark.md", 'w', encoding="utf-8") as f_dst:
+    with open("docs/benchmark.md", "w", encoding="utf-8") as f_dst:
         f_dst.write(report)
 
 

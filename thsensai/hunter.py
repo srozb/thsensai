@@ -18,8 +18,11 @@ Notes:
     - Outputs are stored in a CSV file in the `output/` directory.
 """
 
-from typing import List, Dict
+import os
+from typing import List, Dict, Any, Optional
 from langchain_ollama import ChatOllama
+from langchain_core.documents import Document
+from rich.progress import Progress
 from pydantic import ValidationError
 from thsensai import TEMPERATURE
 from thsensai.knowledge import split_docs
@@ -82,64 +85,129 @@ def process_chunk(
         return []
 
 
-def generate_report_name(chunks: List[dict], params: Dict[str, str]) -> str:
+def generate_report_name(source: str, params: Dict[str, str]) -> str:
     """
-    Generate a report name based on metadata and parameters.
+    Generate a unique report name based on the source and extraction parameters.
 
     Args:
-        chunks (List[dict]): List of metadata dictionaries for the chunks.
-        chunk_size (int): Size of document chunks.
-        num_ctx (int): Context window size.
-        num_predict (int): Maximum tokens to predict.
+        source (str): A string representing the source of the intelligence data
+                      (e.g., a URL or file path).
+        params (Dict[str, str]): A dictionary of parameters used for report generation, including:
+            - chunk_size (str): Size of document chunks.
+            - chunk_overlap (str): Overlap size between chunks.
+            - num_ctx (str): Context window size.
+            - num_predict (str): Maximum tokens to predict.
 
     Returns:
-        str: The generated report name.
+        str: The generated report name, formatted with the source and parameters.
+
+    Example:
+        >>> source = "https://example.com/threat-report"
+        >>> params = {
+        ...     "chunk_size": "500",
+        ...     "chunk_overlap": "100",
+        ...     "num_ctx": "1024",
+        ...     "num_predict": "256"
+        ... }
+        >>> generate_report_name(source, params)
+        'example_com_threat-report_cs-500_co-100_nc-1024_np-256.csv'
+
+    Notes:
+        The `source` is sanitized by replacing certain characters (e.g., "https://", "/", ".")
+        to make it a valid filename. The parameters are appended to the report name
+        for better identification.
     """
-    report_name = (
-        chunks[0]
-        .metadata["source"]
-        .replace("https://", "")
-        .replace("/", "_")
-        .replace(".", "_")
-    )
-    report_name += f"_cs-{params['chunk_size']}_nc-{params['num_ctx']}"
-    report_name += f"_np-{params['num_predict']}.csv"
+    report_name = source.replace("https://", "").replace("/", "_").replace(".", "_")
+    report_name += f"_cs-{params['chunk_size']}_co-{params['chunk_overlap']}"
+    report_name += f"_nc-{params['num_ctx']}_np-{params['num_predict']}.csv"
     return report_name
 
 
-def write_iocs_to_file(iocs: List[str], report_name: str):
+def write_report(iocs_obj: IOCs, source: str, params: Dict[str, Any], output_dir: str):
     """
-    Write extracted IOCs to a file.
+    Write extracted IOCs to a CSV file in the specified output directory.
 
     Args:
-        iocs (List[str]): List of IOCs in CSV format.
-        report_name (str): Name of the file to save the IOCs.
+        iocs_obj (IOCs): A Pydantic `IOCs` object containing the extracted Indicators of Compromise.
+        source (str): A string representing the source of the intelligence data
+                      (e.g., a URL or file path) used to generate the report name.
+        params (Dict[str, Any]): A dictionary of parameters used for report generation, including:
+            - chunk_size (int): Size of document chunks.
+            - num_ctx (int): Context window size.
+            - num_predict (int): Maximum tokens to predict.
+        output_dir (str): The directory where the report file should be saved.
+
+    Raises:
+        OSError: If the output directory cannot be created or the file cannot be written.
+
+    Side Effects:
+        - Creates the specified output directory if it does not exist.
+        - Writes the CSV file containing IOC data to the specified output directory.
+
+    Example:
+        >>> iocs_obj = IOCs(iocs=[...])
+        >>> source = "https://example.com/threat-report"
+        >>> params = {"chunk_size": 500, "num_ctx": 1024, "num_predict": 256}
+        >>> write_report(iocs_obj, source, params, output_dir="output")
+
+    Notes:
+        The report file is named based on the `source` and `params` values, ensuring a unique
+        and descriptive filename. The IOCs are converted to CSV format before writing.
     """
-    with open(f"output/{report_name}", "w", encoding="utf-8") as f_dst:
-        f_dst.write("\n".join(iocs))
+    report_name = generate_report_name(source, params)
+    csv_output = iocs_to_csv(iocs_obj)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    with open(f"{output_dir}/{report_name}", "w", encoding="utf-8") as f_dst:
+        f_dst.write("\n".join(csv_output))
 
 
 def extract_iocs(
-    intel, model, params: Dict[str, str], seed=None, progress=None
-) -> IOCs:
+    intel: List[Document],
+    model: str,
+    params: Dict[str, Any],
+    seed: Optional[int] = None,
+    progress: Optional[Progress] = None,
+    ) -> IOCs:
     """
     Extract Indicators of Compromise (IOCs) from the provided intelligence data.
 
     Args:
-        intel (list[Document]): The raw threat intelligence data to analyze,
-            represented as a list of LangChain `Document` objects.
-        model (str): The LLM model to use for extraction.
-        params (Dict[str, str]): A dictionary containing extraction parameters:
+        intel (List[Document]): A list of LangChain `Document` objects representing 
+            the raw threat intelligence data to analyze.
+        model (str): The LLM model to use for IOC extraction.
+        params (Dict[str, Any]): A dictionary containing extraction parameters:
             - chunk_size (int): Maximum size of each data chunk for LLM input.
+            - chunk_overlap (int): Overlap size between consecutive chunks.
+            - num_ctx (int): Context window size for the LLM input.
             - num_predict (int): Maximum number of tokens to predict.
-            - num_ctx (int): Size of the context window used for LLM input.
-        seed (int, optional): Random seed for consistent results. Defaults to None.
-        progress (Progress, optional): A Rich Progress object to track progress externally.
+        seed (Optional[int]): Random seed for consistent results. Defaults to None.
+        progress (Optional[Progress]): A Rich `Progress` object to display and 
+            track progress externally. Defaults to None.
 
     Returns:
-        IOCs: A Pydantic `IOCs` object containing the extracted Indicators of Compromise,
-              with deduplicated and combined context.
+        IOCs: A Pydantic `IOCs` object containing the extracted Indicators of Compromise, 
+        with deduplicated entries and combined context.
+
+    Notes:
+        - The input intelligence data is divided into chunks based on the specified 
+          `chunk_size` and `chunk_overlap` parameters.
+        - Each chunk is processed using the specified LLM model to extract IOC objects.
+        - If a `Progress` object is provided, progress is tracked for each chunk processed.
+
+    Example:
+        >>> from langchain.schema import Document
+        >>> intel = [Document(page_content="Sample intel text.", metadata={})]
+        >>> model = "example-llm-model"
+        >>> params = {
+        ...     "chunk_size": 500,
+        ...     "chunk_overlap": 100,
+        ...     "num_ctx": 1024,
+        ...     "num_predict": 256
+        ... }
+        >>> extract_iocs(intel, model, params)
     """
+
     chunks = split_docs(
         intel, chunk_size=params["chunk_size"], chunk_overlap=params["chunk_overlap"]
     )
@@ -163,12 +231,6 @@ def extract_iocs(
                 description=f"🔎 [green]Extracted IOCs: [bold]{len(iocs_obj.iocs)}[/bold][/green]",
             )
 
-    report_name = generate_report_name(chunks, params)
-
     iocs_obj.deduplicate_and_combine_context()
-    csv_output = iocs_to_csv(iocs_obj)
-
-    with open(f"output/{report_name}", "w", encoding="utf-8") as f_dst:
-        f_dst.write(csv_output)
 
     return iocs_obj
