@@ -6,10 +6,9 @@ sensai is a Python library and CLI application designed to assist threat hunters
 
 ## **Features**
 
-* Semi-automated threat report analysis.
+* Automated threat report analysis and IOC extraction with context.
 * Flexible CLI benchmarking for various LLM models and inference parameters.
 * Support for integrating with Langsmith for detailed inference tracing.
-* Modular design with scope for extending functionality (e.g., threat-hunting hypothesis generation and OCR).
 * **Web scraping support**: scrape threat reports directly from web pages.
 * **Advanced document understanding**: Extract and analyze content from various formats including PDF, DOCX, PPTX, XLSX, Images, HTML, AsciiDoc, and Markdown via the [Docling library](https://github.com/DS4SD/docling).  
 
@@ -40,11 +39,13 @@ Ensure Ollama is installed and updated. Follow the [official Ollama documentatio
 
 ### **2. Pull a Model**
 
-Download the required model, e.g., Qwen2.5:  
+Download the required model, e.g., Qwen2.5:32b:  
 
 ```bash
 ollama pull qwen2.5:32b
 ```
+
+Pick a model supporting [function calling](https://ollama.com/search?c=tools) (tool).
 
 ### **3. Test Ollama**
 
@@ -145,10 +146,10 @@ Threat hunting and intelligence analysis involve complex, high-stakes decisions,
 * **Scraping Strategy:** Current scraping requires defining valid CSS selectors to extract the correct data. Improvements are planned.
 * **Model Testing:** Limited testing with models larger than 32b.  
 * **Hypothesis Creation:** Automated generation of threat-hunting hypotheses is under development.  
-* **OCR Integration:** OCR capabilities are planned but require additional dependencies like `docling` or `crawl4ai` for implementation and testing.  
+* **OCR Integration:** OCR capabilities are planned.  
 
 ---
 
 ## **More Information**
 
-* Read the [LinkedIn article](url) for an in-depth explanation of AI-aided threat hunting with this tool.  
+* TODO
