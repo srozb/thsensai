@@ -213,7 +213,7 @@ def run_extraction_with_timer(
         BarColumn(),
         TaskProgressColumn(),
         TimeElapsedColumn(),
-        MofNCompleteColumn(),
+        MofNCompleteColumn(),  # pylint: disable=duplicate-code
     ) as progress:
         iocs = extract_iocs(intel=intel, model=model, params=params, progress=progress)
     total_inference_time = time.time() - start_time
