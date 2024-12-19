@@ -1,3 +1,5 @@
+# pylint: disable=wrong-import-position
+
 """
 This module provides functionality to scrape web pages using CSS selectors
 and return the extracted content as LangChain documents.

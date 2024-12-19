@@ -1,3 +1,5 @@
+# pylint: disable=too-many-arguments, too-many-positional-arguments
+
 """
 Sensai CLI Tool
 
@@ -15,9 +17,7 @@ Usage:
 """
 
 import typer
-from rich import print as rp
 from rich.console import Console
-from rich.table import Table
 from rich.markdown import Markdown
 from rich.progress import (
     Progress,
@@ -30,13 +30,13 @@ from rich.progress import (
 
 from thsensai.knowledge import acquire_intel
 from thsensai.test.test_intel import benchmark_models
-from thsensai.hunter import extract_iocs, write_report
+from thsensai.hunter import extract_iocs, write_report, display_results
 
 app = typer.Typer(help="Sensai: Threat Hunting and Intelligence Tool")
 
 
 @app.command()
-def analyze(  # noqa: R0913
+def analyze(
     source: str = typer.Argument(..., help="Input file or URL for IOC extraction"),
     model: str = typer.Option(
         ...,
@@ -148,17 +148,7 @@ def analyze(  # noqa: R0913
     ) as progress:
         iocs = extract_iocs(intel, model, params, progress=progress)
 
-    table = Table(title="Extracted IOCs")
-    table.add_column("Type", justify="center", style="cyan", no_wrap=True)
-    table.add_column("Value", style="magenta")
-    table.add_column("Context", style="green")
-
-    for ioc in iocs.iocs:
-        context = ioc.context.strip() if ioc.context and ioc.context.strip() else "N/A"
-        table.add_row(ioc.type, ioc.value, context)
-
-    rp("")
-    rp(table)
+    display_results(iocs)
 
     if report:
         write_report(iocs, source, params, output_dir)

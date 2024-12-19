@@ -2,16 +2,18 @@
 
 from setuptools import setup, find_packages
 
-def parse_requirements(filename):
-    """Load requirements from a pip requirements file."""
+
+def include(filename) -> str:
+    """Load file contents."""
     with open(filename, encoding="utf-8") as f:
-        return f.read().splitlines()
+        return f.read()
+
 
 setup(
     name="thsensai",
-    version="0.1.0",
+    version="0.1.1",
     description="A library and CLI tool for AI-aided threat hunting and intelligence analysis.",
-    long_description=open("README.md", encoding="utf-8").read(),  # noqa: R1732
+    long_description=include("README.md"),
     long_description_content_type="text/markdown",
     author="srozb",
     author_email="github@rozbicki.eu",
@@ -19,7 +21,13 @@ setup(
     license="MIT",
     packages=find_packages(),
     include_package_data=True,
-    install_requires=parse_requirements("requirements.txt"),
+    install_requires=include("requirements.txt").splitlines(),
+    extras_require={
+        "dev": [
+            "pylint>=3.3.0",
+        ],
+    },
+
     entry_points={
         "console_scripts": [
             "sensai=thsensai.cli:app",

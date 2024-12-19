@@ -23,6 +23,8 @@ from typing import List, Dict, Any, Optional
 from langchain_ollama import ChatOllama
 from langchain_core.documents import Document
 from rich.progress import Progress
+from rich.table import Table
+from rich import print as rp
 from pydantic import ValidationError
 from thsensai import TEMPERATURE
 from thsensai.knowledge import split_docs
@@ -162,18 +164,51 @@ def write_report(iocs_obj: IOCs, source: str, params: Dict[str, Any], output_dir
         f_dst.write(csv_output)
 
 
+def display_results(iocs: IOCs):
+    """
+    Display extracted Indicators of Compromise (IOCs) in a formatted table.
+
+    This function takes a collection of IOCs and displays them in a structured
+    and visually appealing table format using the Rich library. Each IOC is
+    represented by its type, value, and context.
+
+    Args:
+        iocs (IOCs): A Pydantic object containing the extracted Indicators of
+                     Compromise. It should have an `iocs` attribute, which is
+                     a list of objects with the following attributes:
+                     - `type` (str): The type of the IOC (e.g., "IP", "Domain").
+                     - `value` (str): The actual IOC value (e.g., "192.168.0.1").
+                     - `context` (str, optional): Additional context or metadata
+                       associated with the IOC.
+
+    Returns:
+        None: The function outputs the table directly to the console.
+    """
+    table = Table(title="Extracted IOCs")
+    table.add_column("Type", justify="center", style="cyan", no_wrap=True)
+    table.add_column("Value", style="magenta")
+    table.add_column("Context", style="green")
+
+    for ioc in iocs.iocs:
+        context = ioc.context.strip() if ioc.context and ioc.context.strip() else "N/A"
+        table.add_row(ioc.type, ioc.value, context)
+
+    rp("")
+    rp(table)
+
+
 def extract_iocs(
     intel: List[Document],
     model: str,
     params: Dict[str, Any],
     seed: Optional[int] = None,
     progress: Optional[Progress] = None,
-    ) -> IOCs:
+) -> IOCs:
     """
     Extract Indicators of Compromise (IOCs) from the provided intelligence data.
 
     Args:
-        intel (List[Document]): A list of LangChain `Document` objects representing 
+        intel (List[Document]): A list of LangChain `Document` objects representing
             the raw threat intelligence data to analyze.
         model (str): The LLM model to use for IOC extraction.
         params (Dict[str, Any]): A dictionary containing extraction parameters:
@@ -182,15 +217,15 @@ def extract_iocs(
             - num_ctx (int): Context window size for the LLM input.
             - num_predict (int): Maximum number of tokens to predict.
         seed (Optional[int]): Random seed for consistent results. Defaults to None.
-        progress (Optional[Progress]): A Rich `Progress` object to display and 
+        progress (Optional[Progress]): A Rich `Progress` object to display and
             track progress externally. Defaults to None.
 
     Returns:
-        IOCs: A Pydantic `IOCs` object containing the extracted Indicators of Compromise, 
+        IOCs: A Pydantic `IOCs` object containing the extracted Indicators of Compromise,
         with deduplicated entries and combined context.
 
     Notes:
-        - The input intelligence data is divided into chunks based on the specified 
+        - The input intelligence data is divided into chunks based on the specified
           `chunk_size` and `chunk_overlap` parameters.
         - Each chunk is processed using the specified LLM model to extract IOC objects.
         - If a `Progress` object is provided, progress is tracked for each chunk processed.

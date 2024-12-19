@@ -88,10 +88,9 @@ def benchmark_models(
     report_parts = ["# IOC Extracting Benchmark\n"]
     for model in models:
         report_parts.append(f"## {model}\n")
-        report_parts.append(
-            process_model_benchmark(model, chunk_sizes, chunk_overlaps)
-        )
+        report_parts.append(process_model_benchmark(model, chunk_sizes, chunk_overlaps))
     return "\n".join(report_parts)
+
 
 def process_model_benchmark(
     model: str, chunk_sizes: List[int], chunk_overlaps: List[int]
@@ -166,9 +165,7 @@ def run_benchmarks_for_configuration(
             "num_predict": -1,
             "num_ctx": 4096,
         }
-        total_inference_time, iocs = run_extraction_with_timer(
-            intel, model, params
-        )
+        total_inference_time, iocs = run_extraction_with_timer(intel, model, params)
         score = rate_extraction(iocs, keywords)
 
         table.add_row(
@@ -211,6 +208,7 @@ def run_extraction_with_timer(
     """
     start_time = time.time()
     with Progress(
+        TextColumn(f"Model: {model}"),
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
         TaskProgressColumn(),
