@@ -11,7 +11,7 @@ setup(
     name="thsensai",
     version="0.1.0",
     description="A library and CLI tool for AI-aided threat hunting and intelligence analysis.",
-    long_description=open("README.md", encoding="utf-8").read(),
+    long_description=open("README.md", encoding="utf-8").read(),  # noqa: R1732
     long_description_content_type="text/markdown",
     author="srozb",
     author_email="github@rozbicki.eu",

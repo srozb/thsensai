@@ -1,1 +1,5 @@
-TEMPERATURE = 0.2  # noqa: C0114
+"""
+Constants & global variables.
+"""
+
+TEMPERATURE = 0.2

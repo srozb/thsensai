@@ -20,14 +20,22 @@ sensai is a Python library and CLI application designed to assist threat hunters
 
 ## **Requirements**
 
-* Python >= 3.9  
+* Python >= 3.9 (3.11 recommended)
 * All dependencies are listed in `requirements.txt`.  
 
-It’s highly recommended to use a virtual environment such as `pipenv` or `pipx` for isolation:  
+---
+
+## **Installation**
+
+It is highly recommended to use a virtual environment like pipenv or pipx to ensure dependency isolation.
+
+To install the package using pipx, run the following command:
 
 ```bash
-pipx install https://github.com/srozb/thsensai
-```  
+pipx install --python 3.11 git+https://github.com/srozb/thsensai.git
+```
+
+⚠️ **Note:** The first execution might take longer due to compilation.
 
 ---
 
