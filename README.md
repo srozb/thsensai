@@ -160,4 +160,4 @@ Threat hunting and intelligence analysis involve complex, high-stakes decisions,
 
 ## **More Information**
 
-* TODO
+* [AI-Assisted Threat Hunting - Unleashing the Power of Local LLMs - Part 1: Extracting IOCs with Context](https://www.linkedin.com/pulse/ai-assisted-threat-hunting-unleashing-power-local-llms-rozbicki-5kkkf/)
