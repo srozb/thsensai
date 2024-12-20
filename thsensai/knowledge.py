@@ -13,6 +13,8 @@ Key Functions:
 - retrieve_context: Retrieve the most relevant documents from the vector store based on a query.
 """
 
+import re
+import os
 from typing import List
 from langchain_core.documents import Document
 from langchain_core.vectorstores import InMemoryVectorStore
@@ -70,6 +72,36 @@ def store_data(data: str) -> None:
     chunks = split_docs(data)
     store_docs(chunks)
 
+
+def slugify(value: str) -> str:
+    """
+    Convert a string to a slug by replacing non-alphanumeric characters with hyphens.
+
+    Args:
+        value (str): The string to slugify.
+
+    Returns:
+        str: The slugified string.
+    """
+    value = re.sub(r'[^\w\s-]', '', value).strip().lower()
+    return re.sub(r'[-\s]+', '-', value)
+
+def save_docs_to_disk(docs: List[Document], output_dir: str, source: str) -> None:
+    """
+    Save documents to disk.
+
+    Args:
+        docs (List[Document]): List of documents to save.
+        output_dir (str): Directory where documents will be saved.
+        source (str): Source of the documents to derive the report name.
+    """
+    report_name = slugify(source) + ".txt"
+    file_path = os.path.join(output_dir, report_name)
+    os.makedirs(output_dir, exist_ok=True)
+
+    with open(file_path, "w", encoding="utf-8") as f:
+        for doc in docs:
+            f.write(doc.page_content + "\n\n")
 
 def acquire_intel(source: str, css_selector: str = None) -> List[Document]:
     """

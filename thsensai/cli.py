@@ -28,7 +28,7 @@ from rich.progress import (
     TaskProgressColumn,
 )
 
-from thsensai.knowledge import acquire_intel
+from thsensai.knowledge import acquire_intel, save_docs_to_disk
 from thsensai.test.test_intel import benchmark_models
 from thsensai.hunter import extract_iocs, write_report, display_results
 
@@ -84,6 +84,12 @@ def analyze(
         "-r",
         help="Create a report file",
     ),
+    write_intel: bool = typer.Option(
+        False,
+        "--write-intel",
+        "-i",
+        help="Create a file with scrapped intelligence",
+    ),
 ):
     """
     Analyze threat intelligence and extract Indicators of Compromise (IOCs).
@@ -105,11 +111,13 @@ def analyze(
         num_ctx (int): The size of the context window for the LLM. Determines how 
             much of the input can be considered for predictions.
         css_selector (str): An optional CSS selector to filter HTML content before 
-            processing. Defaults to "body" for extracting the main content.
+            processing. This parameter allows you to limit the scope of HTML parsing 
         output_dir (str): The directory to save the generated report. Defaults to the 
+            current working directory ("./"). If the directory does not exist, it will be created.
             current working directory ("./").
         report (bool): Whether to save the extracted IOCs as a report file. If True, 
-            a CSV file will be created in the specified `output_dir`.
+            a CSV file will be created in the specified `output_dir`. Defaults to False.
+        write_intel (bool): Whether to save the acquired intelligence as a file. If True,
 
     Returns:
         None
@@ -132,7 +140,16 @@ def analyze(
             $ sensai analyze https://example.com/intel_report.html --model "example-llm-model"
 
     """
-    intel = acquire_intel(source, css_selector)
+    try:
+        intel = acquire_intel(source, css_selector)
+    except Exception as e:
+        console = Console()
+        console.print(f"[bold red]Error acquiring intelligence: {e}[/bold red]")
+        raise typer.Exit(code=1)
+
+    if write_intel:
+        save_docs_to_disk(intel, output_dir, source)
+
     params = {
         "chunk_size": chunk_size,
         "chunk_overlap": chunk_overlap,
