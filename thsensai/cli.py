@@ -17,7 +17,7 @@ Usage:
 """
 
 import typer
-from rich.console import Console
+from rich import print as rp
 from rich.markdown import Markdown
 from rich.progress import (
     Progress,
@@ -30,9 +30,12 @@ from rich.progress import (
 
 from thsensai.knowledge import acquire_intel, save_docs_to_disk
 from thsensai.test.test_intel import benchmark_models
-from thsensai.hunter import extract_iocs, write_report, display_results
+from thsensai.ioc import IOCs
+from thsensai.hyp import Hypotheses
+from thsensai.hunt import Hunt
+from thsensai.utils import ensure_dir_exist
 
-app = typer.Typer(help="Sensai: Threat Hunting and Intelligence Tool")
+app = typer.Typer(help="🏹 Sensai: Threat Hunting and Intelligence Tool")
 
 
 @app.command()
@@ -78,17 +81,23 @@ def analyze(
         "-d",
         help="Location of the report directory",
     ),
-    report: bool = typer.Option(
+    write_iocs: bool = typer.Option(
         False,
-        "--write-report",
-        "-r",
+        "--write-iocs",
+        "-i",
         help="Create a report file",
     ),
     write_intel: bool = typer.Option(
         False,
-        "--write-intel",
-        "-i",
-        help="Create a file with scrapped intelligence",
+        "--write-intel-docs",
+        "-n",
+        help="Create a file with intelligence either scrapped or acquired from file",
+    ),
+    write_hypotheses: bool = typer.Option(
+        False,
+        "--write-hypotheses",
+        "-y",
+        help="Create a file with proposed hypotheses",
     ),
 ):
     """
@@ -143,8 +152,7 @@ def analyze(
     try:
         intel = acquire_intel(source, css_selector)
     except Exception as e:
-        console = Console()
-        console.print(f"[bold red]Error acquiring intelligence: {e}[/bold red]")
+        rp(f"[bold red]Error acquiring intelligence: {e}[/bold red]")
         raise typer.Exit(code=1)
 
     if write_intel:
@@ -156,6 +164,9 @@ def analyze(
         "num_predict": num_predict,
         "num_ctx": num_ctx,
     }
+
+    iocs_obj = IOCs(iocs=[])
+
     with Progress(
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
@@ -163,12 +174,19 @@ def analyze(
         TimeElapsedColumn(),
         MofNCompleteColumn(),
     ) as progress:
-        iocs = extract_iocs(intel, model, params, progress=progress)
+        iocs_obj.read_intel(intel, model, params, progress=progress)
 
-    display_results(iocs)
+    iocs_obj.display()
 
-    if report:
-        write_report(iocs, source, params, output_dir)
+    if write_hypotheses:
+        hypotheses = Hypotheses(hypotheses=[])
+        hypotheses.generate(iocs_obj.as_csv(), model, params)
+        hypotheses.display()
+        hypotheses.write_report(source, params, output_dir)
+        # write_hypotheses_report(iocs, source, model, params, output_dir)
+
+    if write_iocs:
+        iocs_obj.write_report(source, params, output_dir)
 
 
 @app.command()
@@ -241,11 +259,94 @@ def benchmark(
         chunk_size_list,
         chunk_overlap_list,
     )
-    console = Console()
-    console.print(Markdown(report))
+    rp(Markdown(report))
 
     with open("docs/benchmark.md", "w", encoding="utf-8") as f_dst:
         f_dst.write(report)
+
+
+@app.command()
+def hunt(
+    source: str = typer.Argument(..., help="Input file containing intelligence data"),
+    model: str = typer.Option(
+        ...,
+        "--model",
+        "-m",
+        help="LLM model to be used for inference",
+    ),
+    chunk_size: int = typer.Option(
+        3000,
+        "--chunk-size",
+        "-s",
+        help="Intel document split size",
+    ),
+    chunk_overlap: int = typer.Option(
+        100,
+        "--chunk-overlap",
+        "-o",
+        help="Intel document split overlap",
+    ),
+    num_predict: int = typer.Option(
+        -1,
+        "--num-predict",
+        help="Maximum number of tokens to predict when generating text (-1 = infinite)",
+    ),
+    num_ctx: int = typer.Option(
+        4096,
+        "--num-ctx",
+        help="Size of the context window used to generate the next token",
+    ),
+    work_dir: str = typer.Option(
+        "./",
+        "--work-dir",
+        "-d",
+        help="Location of the workspace directory",
+    ),
+    no_hypotheses: bool = typer.Option(
+        False,
+        "--no-hypotheses",
+        "-i",
+        help="Omit creation of hypotheses",
+    ),
+):
+    """
+    Prepare the hunt plan based on the given intelligence data.
+    """
+
+    params = {
+        "chunk_size": chunk_size,
+        "chunk_overlap": chunk_overlap,
+        "num_predict": num_predict,
+        "num_ctx": num_ctx,
+    }
+    # with Progress(
+    #     TextColumn("[progress.description]{task.description}"),
+    #     BarColumn(),
+    #     TaskProgressColumn(),
+    #     TimeElapsedColumn(),
+    #     MofNCompleteColumn(),
+    # ) as progress:
+    #     iocs = extract_iocs(intel, model, params, progress=progress)
+
+    with open(source, 'r', encoding='utf-8') as file:
+        intel = file.read()
+    iocs_obj = IOCs(iocs=[])
+    iocs_obj.extend_from_csv(intel)
+    
+    hunt = Hunt()
+    hunt.iocs = iocs_obj
+    hunt.generate(model, params)
+    hunt.display()
+
+    # ensure_dir_exist(work_dir)
+    # hunt_meta = HuntMeta()
+    # hunt_meta.generate(intel, model, params)
+    # hunt_meta.display()
+    # if not no_hypotheses:
+    #     hypotheses = Hypotheses(hypotheses=[])
+    #     hypotheses.generate(intel, model, params)
+    #     hypotheses.display()
+        #hypotheses.write_report(source, params, work_dir)
 
 
 if __name__ == "__main__":

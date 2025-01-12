@@ -1,31 +1,25 @@
 """
-ioc.py
-
-This module contains models and utilities for handling Indicators of Compromise (IOCs). 
-It provides the IOC and IOCs Pydantic models for structured representation of threat 
-intelligence, along with helper functions for serializing IOCs to CSV format.
+This module provides classes for representing and handling Indicators of Compromise (IOCs).
 
 Classes:
-    - IOC: Represents a single Indicator of Compromise.
-    - IOCs: Represents a collection of IOCs.
-
-Functions:
-    - iocs_to_csv: Converts a list of IOC objects to a CSV-formatted string.
-
-Usage:
-    >>> from thsensai.ioc import IOC, IOCs, iocs_to_csv
-    >>> ioc = IOC(type="ip", value="192.168.1.1", context="Suspicious traffic")
-    >>> print(ioc)
-    >>> iocs = IOCs(iocs=[ioc])
-    >>> print(iocs_to_csv(iocs.iocs))
-
+    IOC(BaseModel): A class representing a single Indicator of Compromise (IOC).
+    IOCs(BaseModel): A class representing a collection of Indicators of Compromise (IOCs).
 """
 
 import csv
+
 from collections import defaultdict
 from io import StringIO
-from typing import List
+from typing import List, Optional
+from rich.table import Table
+from rich.progress import Progress
+from rich import print as rp
 from pydantic import BaseModel, field_validator
+from pydantic import ValidationError
+from langchain_core.documents import Document
+from thsensai.infer import LLMInference
+from thsensai.knowledge import split_docs
+from thsensai.utils import generate_report_name, ensure_dir_exist
 
 
 class IOC(BaseModel):
@@ -78,13 +72,133 @@ class IOC(BaseModel):
 
 class IOCs(BaseModel):
     """
-    Represents a collection of IOCs.
+    A class representing a collection of Indicators of Compromise (IOCs).
 
     Attributes:
         iocs (List[IOC]): A list of IOC objects.
+
+    Methods:
+        deduplicate_and_combine_context():
+
+        as_csv() -> str:
+
+        display():
+            Displays extracted Indicators of Compromise (IOCs) in a formatted table.
     """
 
     iocs: List[IOC]
+
+    def extend(
+        self,
+        chunk_content: str,
+        model: str,
+        num_predict: int,
+        num_ctx: int,
+        seed: int,
+    ):
+        """
+        Extend the current collection of IOCs by processing a chunk of threat intelligence data.
+
+        Args:
+            chunk_content (str): The content of the data chunk to process.
+            model (str): The LLM model to use for extraction.
+            num_predict (int): Maximum number of tokens to predict.
+            num_ctx (int): Context window size for the LLM input.
+            seed (int): Random seed for consistent results.
+
+        Returns:
+            int: The number of IOCs extracted from the chunk.
+        """
+
+        query = (
+            "As a threat intel expert, extract all Indicators of Compromise (IOCs) "
+            "from the provided text. Each IOC must include its type, value, and context. "
+            "If no IOCs are present, return an empty response. Do not include comments "
+            "or extraneous text. Format the response adhering to the schema provided."
+        )
+
+        llm = LLMInference(model, num_predict, num_ctx, seed=seed)
+        try:
+            structured_output = llm.invoke_model(chunk_content, query, IOCs)
+            if structured_output is not None:
+                self.iocs.extend(structured_output.iocs)  # Extend the current IOCs list
+                self.deduplicate_and_combine_context()
+                return len(structured_output.iocs)
+        except ValidationError:
+            return 0
+
+    def extend_from_csv(self, iocs_csv: str):
+        """
+        Extend the current collection of IOCs by processing a CSV file containing IOCs.
+
+        Args:
+            iocs_csv (str): The content of the CSV file containing IOCs.
+
+        Returns:
+            None: The method updates the IOCs list with the extracted IOCs.
+        """
+        iocs = []
+        try:
+            with StringIO(iocs_csv) as f_src:
+                reader = csv.DictReader(f_src)
+                for row in reader:
+                    # Convert keys to lowercase
+                    lower_case_row = {key.lower(): value for key, value in row.items()}
+                    ioc = IOC(**lower_case_row)
+                    iocs.append(ioc)
+        except ValidationError as e:
+            rp(f"Validation error: {e}")
+
+        self.iocs.extend(iocs)
+        self.deduplicate_and_combine_context()
+
+    def read_intel(
+        self,
+        intel: List[Document],
+        model: str,
+        params: dict,
+        progress: Progress,
+        seed: Optional[int] = None,
+    ):
+        """
+        Extract IOCs from a list of intelligence documents using an LLM model.
+
+        Args:
+            intel (List[Document]): A list of intelligence documents to process.
+            model (str): The name of the LLM model to use for extraction.
+            params (dict): A dictionary of parameters for the extraction process.
+            progress (Progress): A Rich Progress object to display the extraction progress.
+
+        Returns:
+            None: The method updates the IOCs list with the extracted IOCs.
+        """
+        chunks = split_docs(
+            intel,
+            chunk_size=params["chunk_size"],
+            chunk_overlap=params["chunk_overlap"],
+        )
+        task_id = None
+
+        if progress:
+            task_id = progress.add_task(
+                "🔎 [green]Extracting IOCs...", total=len(chunks)
+            )
+
+        for chunk in chunks:
+            added = self.extend(
+                chunk.page_content,
+                model,
+                params["num_predict"],
+                params["num_ctx"],
+                seed,
+            )
+
+            if progress and task_id is not None:
+                progress.advance(task_id)
+                progress.update(
+                    task_id,
+                    description=f"🔎 [green]Extracted IOCs: [bold]{added}[/bold][/green]",
+                )
 
     def deduplicate_and_combine_context(self):
         """
@@ -120,23 +234,60 @@ class IOCs(BaseModel):
         # Update the iocs list with deduplicated IOCs
         self.iocs = sorted(deduplicated_iocs, key=lambda ioc: ioc.type)
 
+    def as_csv(self) -> str:
+        """
+        Converts the collection of IOCs into a CSV string with a header.
 
-def iocs_to_csv(iocs_obj: IOCs) -> str:
-    """
-    Converts a collection of IOCs into a CSV string with a header.
+        Returns:
+            str: The CSV string representation of the IOCs.
+        """
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Type", "Value", "Context"])  # Header row
 
-    Args:
-        iocs_obj (IOCs): The IOCs object containing a list of IOC instances.
+        for ioc in self.iocs:
+            writer.writerow([ioc.type, ioc.value, ioc.context])
 
-    Returns:
-        str: The CSV string representation of the IOCs.
-    """
+        return output.getvalue()
 
-    output = StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["Type", "Value", "Context"])  # Header row
+    def display(self):
+        """
+        Display extracted Indicators of Compromise (IOCs) in a formatted table.
 
-    for ioc in iocs_obj.iocs:
-        writer.writerow([ioc.type, ioc.value, ioc.context])
+        This method displays the IOCs in a structured and visually appealing table
+        format using the Rich library. Each IOC is represented by its type, value,
+        and context.
 
-    return output.getvalue()
+        Returns:
+            None: The method outputs the table directly to the console.
+        """
+        table = Table(title="Extracted IOCs")
+        table.add_column("Type", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Value", style="magenta")
+        table.add_column("Context", style="green")
+
+        for ioc in self.iocs:
+            context = (
+                ioc.context.strip() if ioc.context and ioc.context.strip() else "N/A"
+            )
+            table.add_row(ioc.type, ioc.value, context)
+
+        rp("")
+        rp(table)
+
+    def write_report(self, source: str, params: dict, output_dir: str):
+        """
+        Write the extracted IOCs to a CSV report file.
+
+        Args:
+            source (str): The source identifier for the report.
+            params (dict): A dictionary of parameters used to generate the report.
+            output_dir (str): The directory where the report will be saved.
+
+        Returns:
+            None: The method writes the report to a CSV file in the specified directory.
+        """
+        report_name = generate_report_name(source, params, "ioc", "csv")
+        ensure_dir_exist(output_dir)
+        with open(f"{output_dir}/{report_name}", "w", encoding="utf-8") as f_dst:
+            f_dst.write(self.as_csv())

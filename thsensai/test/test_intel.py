@@ -18,7 +18,6 @@ from rich.progress import (
 )
 
 from thsensai.knowledge import acquire_intel
-from thsensai.hunter import extract_iocs
 from thsensai.test.test_cases import test_cases
 from thsensai.ioc import IOCs
 
@@ -215,6 +214,7 @@ def run_extraction_with_timer(
         TimeElapsedColumn(),
         MofNCompleteColumn(),  # pylint: disable=duplicate-code
     ) as progress:
-        iocs = extract_iocs(intel=intel, model=model, params=params, progress=progress)
+        iocs_obj = IOCs(iocs=[])
+        iocs_obj.read_intel(intel, model, params, progress)
     total_inference_time = time.time() - start_time
-    return total_inference_time, iocs
+    return total_inference_time, iocs_obj

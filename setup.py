@@ -11,7 +11,7 @@ def include(filename) -> str:
 
 setup(
     name="thsensai",
-    version="0.1.2",
+    version="0.2.0",
     description="A library and CLI tool for AI-aided threat hunting and intelligence analysis.",
     long_description=include("README.md"),
     long_description_content_type="text/markdown",
