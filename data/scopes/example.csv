@@ -1,0 +1,51 @@
+scope_id;description
+endpoints;All endpoints (Windows, Linux, Macos)
+windows_endpoints;All Windows endpoints
+windows_endpoints_it;All Windows endpoints belonging to IT staff
+macos_endpoints;All Macos endpoints
+servers;All servers (Windows, Linux)
+windows_servers;All Windows servers
+linux_servers;All Linux servers
+cloud;All cloud assets
+ad;AD infrastructure components (Exchange, DC, IIS)
+network;network infrastructure (L2/L3 switches, routers, firewalls)
+wireless;wireless AP and supporting infrastructure
+atm;Windows based ATMs
+web_servers;Linux webservers (Apache, Nginx) and Windows (IIS)
+payment;Payment system infrastructure (e.g. SWIFT servers)
+web_proxy;Web proxy systems
+itsec;IT Security infrastructure (e.g. SIEM, EDR servers, IPS, other solutions)
+virtual_machines;Virtualized environments (VMware, Hyper-V, KVM, etc.)
+databases;Database servers (MySQL, MSSQL, PostgreSQL, Oracle DB)
+containers;Containerized applications and infrastructure (Docker, Kubernetes)
+email_servers;Email servers (e.g., Exchange, Postfix, Sendmail)
+endpoint_security;Endpoint security solutions (e.g., AV, EDR agents)
+vpn;VPN infrastructure and supporting systems
+cloud_iaas;Cloud infrastructure as a service (e.g., AWS EC2, Azure VMs)
+cloud_saas;Cloud software as a service (e.g., Office 365, Salesforce)
+cloud_paas;Cloud platform as a service (e.g., Azure App Service, AWS Lambda)
+mobile_devices;Mobile devices (iOS, Android) used in the enterprise
+devops_tools;DevOps tools and CI/CD pipelines (Jenkins, GitLab, GitHub Actions)
+api_gateways;API gateways and management platforms
+backup_systems;Backup infrastructure and storage solutions
+network_shared_storage;Network-attached storage (NAS) and shared drives
+dmz;DMZ-hosted systems and servers
+iot_devices;IoT devices within the enterprise (e.g., smart cameras, sensors)
+printing;Enterprise printing infrastructure (e.g., printers, print servers)
+crm_systems;Customer relationship management systems (e.g., Salesforce, Dynamics)
+erp_systems;Enterprise resource planning systems (e.g., SAP, Oracle ERP)
+dev_environment;Development environments and test servers
+external_dns;External DNS infrastructure
+internal_dns;Internal DNS servers
+load_balancers;Load balancers (e.g., F5, HAProxy)
+third_party_integrations;Third-party systems integrated with enterprise applications
+physical_security;Physical security systems (e.g., badge readers, CCTV)
+log_aggregation;Log aggregation and monitoring systems (e.g., ELK stack)
+sensitive_assets;Assets hosting sensitive data (e.g., PII, financial records)
+privileged_accounts;Assets frequently accessed by privileged accounts
+critical_services;Critical business services (e.g., billing, HR systems)
+legacy_systems;Legacy systems with known vulnerabilities
+high_risk_endpoints;Endpoints with high-risk applications or configurations
+custom_applications;Enterprise custom-developed applications
+incident_response;Incident response systems and playbook automation tools
+compliance;Compliance monitoring tools (e.g., GDPR, PCI DSS solutions)

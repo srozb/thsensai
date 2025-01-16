@@ -1,0 +1,48 @@
+playbook_name,description
+search_edr_executed_process;Search for executed process details in the EDR
+search_siem_log_patterns;Search for specific patterns in the SIEM log collection
+search_email_logs_anomalies;Search for anomalies in email logs
+search_dns_logs_anomalies;Search for anomalies in DNS logs
+search_firewall_logs_blocked_connections;Search firewall logs for blocked connections
+search_vpn_logs_unusual_locations;Search VPN logs for logins from unusual locations
+search_windows_event_logs;Search Windows Event Logs for relevant event IDs
+correlate_authentication_logs;Correlate authentication events across different systems
+trace_network_connection;Trace a network connection path for anomalies
+search_ioc_in_logs;Search for specific IOCs in log sources
+review_cloud_activity_logs;Review activity logs from cloud infrastructure
+validate_endpoint_file_changes;Check endpoint logs for unauthorized file modifications
+analyze_user_behavior;Analyze user behavior for anomalies
+search_privileged_account_activity;Search for activity involving privileged accounts
+validate_email_header_integrity;Check email headers for integrity and forgery
+search_proxy_logs_unusual_urls;Search proxy logs for unusual URL requests
+analyze_powershell_activity;Analyze PowerShell activity logs for suspicious commands
+trace_lateral_movement;Trace lateral movement across systems
+check_ad_changes;Check Active Directory for recent changes
+scan_for_persistence_mechanisms;Search for persistence mechanisms in endpoints
+hunt_malware_process_injection;Hunt for signs of process injection by malware
+validate_file_hashes;Validate file hashes against known good or malicious ones
+search_network_beaconing;Search network traffic for beaconing patterns
+correlate_siem_cross_source;Correlate events across multiple SIEM data sources
+inspect_web_server_logs;Inspect web server logs for signs of compromise
+search_cloud_misconfigurations;Search for cloud misconfigurations in activity logs
+hunt_exploit_attempts;Search for exploit attempts in logs
+validate_certificate_usage;Check for unusual SSL/TLS certificate usage
+monitor_network_bandwidth_spikes;Monitor for unusual network bandwidth spikes
+inspect_iot_logs;Inspect IoT device logs for unusual activity
+trace_data_exfiltration;Trace signs of data exfiltration in network logs
+hunt_rdp_usage;Search for unusual RDP usage or patterns
+review_backup_integrity;Review the integrity of backup files and schedules
+hunt_for_command_and_control;Hunt for command-and-control traffic in network logs
+validate_sudo_activity;Validate sudo and privilege escalation activity
+search_unusual_account_creation;Search for unusual account creation activity
+review_siemplify_correlations;Use SIEM playbooks for advanced correlation analysis
+inspect_dlp_logs;Inspect Data Loss Prevention logs for suspicious events
+validate_cloud_api_activity;Check cloud API calls for unauthorized or unusual usage
+search_file_upload_activity;Search logs for unusual file uploads to external systems
+inspect_threat_intel_matches;Inspect matches from integrated threat intelligence sources
+analyze_tls_traffic;Analyze encrypted traffic patterns for anomalies
+trace_dns_tunneling;Search for DNS tunneling in DNS request patterns
+search_for_lsass_dumping;Hunt for LSASS memory dumping activity
+review_email_phishing_attempts;Review email logs for phishing indicators
+hunt_account_lockouts;Search for unusual account lockout activity
+
