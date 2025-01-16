@@ -7,10 +7,11 @@ sensai is a Python library and CLI application designed to assist threat hunters
 ## **Features**
 
 * Automated threat report analysis and IOC extraction with context.
+* **Hunt plan generation**: Build the hunt plan according to the PEAK methodology, inferring the scope and suggesting playbooks for the hunt.
+* **Web scraping support**: scrape threat reports directly from web pages.
+* **Advanced document understanding**: Extract and analyze content from various formats including PDF, DOCX, PPTX, XLSX, Images, HTML, AsciiDoc, and Markdown via the [Docling library](https://github.com/DS4SD/docling).
 * Flexible CLI benchmarking for various LLM models and inference parameters.
 * Support for integrating with Langsmith for detailed inference tracing.
-* **Web scraping support**: scrape threat reports directly from web pages.
-* **Advanced document understanding**: Extract and analyze content from various formats including PDF, DOCX, PPTX, XLSX, Images, HTML, AsciiDoc, and Markdown via the [Docling library](https://github.com/DS4SD/docling).  
 
 ---
 
