@@ -16,7 +16,13 @@ sensai is a Python library and CLI application designed to assist threat hunters
 
 ## **Showcase**
 
+**IOC Extraction**
+
 ![Extraction screenshot](docs/extraction.png)
+
+**Hunt plan**
+
+![Hunting screenshot](docs/hunting.png)
 
 ## **Requirements**
 
