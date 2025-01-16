@@ -1,4 +1,4 @@
-# pylint: disable=too-many-arguments, too-many-positional-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments, too-many-locals
 
 """
 Sensai CLI Tool
@@ -33,7 +33,6 @@ from thsensai.test.test_intel import benchmark_models
 from thsensai.ioc import IOCs
 from thsensai.hyp import Hypotheses
 from thsensai.hunt import Hunt
-from thsensai.utils import ensure_dir_exist
 
 app = typer.Typer(help="🏹 Sensai: Threat Hunting and Intelligence Tool")
 
@@ -183,7 +182,6 @@ def analyze(
         hypotheses.generate(iocs_obj.as_csv(), model, params)
         hypotheses.display()
         hypotheses.write_report(source, params, output_dir)
-        # write_hypotheses_report(iocs, source, model, params, output_dir)
 
     if write_iocs:
         iocs_obj.write_report(source, params, output_dir)
@@ -302,15 +300,45 @@ def hunt(
         "-d",
         help="Location of the workspace directory",
     ),
-    no_hypotheses: bool = typer.Option(
+    scope_path: str = typer.Option(
+        None,
+        "--scopes",
+        "-c",
+        help="Location of the workspace directory",
+    ),
+    playbook_path: str = typer.Option(
+        None,
+        "--playbooks",
+        "-p",
+        help="Location of the workspace directory",
+    ),
+    num_hypotheses: int = typer.Option(
+        5,
+        "--num-hypotheses",
+        "-n",
+        help="Number of hypotheses to generate",
+    ),
+    enrich_able: bool = typer.Option(
         False,
-        "--no-hypotheses",
-        "-i",
-        help="Omit creation of hypotheses",
+        "--able",
+        "-a",
+        help="Enrich hypotheses according to the ABLE methodology",
+    ),
+    quiet: bool = typer.Option(
+        False,
+        "--quiet",
+        "-q",
+        help="Suppress output",
+    ),
+    write_report: bool = typer.Option(
+        False,
+        "--write-report",
+        "-w",
+        help="Create a report file 'hunt.json'",
     ),
 ):
     """
-    Prepare the hunt plan based on the given intelligence data.
+    Prepare the hunt plan template based on the given IoCs.
     """
 
     params = {
@@ -328,26 +356,21 @@ def hunt(
     # ) as progress:
     #     iocs = extract_iocs(intel, model, params, progress=progress)
 
-    with open(source, 'r', encoding='utf-8') as file:
-        intel = file.read()
-    iocs_obj = IOCs(iocs=[])
-    iocs_obj.extend_from_csv(intel)
-    
-    hunt = Hunt()
-    hunt.iocs = iocs_obj
-    hunt.generate(model, params)
-    hunt.display()
-
-    # ensure_dir_exist(work_dir)
-    # hunt_meta = HuntMeta()
-    # hunt_meta.generate(intel, model, params)
-    # hunt_meta.display()
-    # if not no_hypotheses:
-    #     hypotheses = Hypotheses(hypotheses=[])
-    #     hypotheses.generate(intel, model, params)
-    #     hypotheses.display()
-        #hypotheses.write_report(source, params, work_dir)
-
+    iocs_obj = IOCs.from_csv(source)
+    hunt_obj = Hunt.from_iocs(iocs_obj)
+    hunt_obj.generate_meta(model, params)
+    if num_hypotheses > 0:
+        hunt_obj.generate_hypotheses(model, params, num_hypotheses=num_hypotheses)
+    if enrich_able:
+        hunt_obj.hypotheses.generate_able(model, params)
+    if scope_path:
+        hunt_obj.meta.scope.generate_targets(scope_path, hunt_obj, model, params)
+    if playbook_path:
+        hunt_obj.meta.scope.generate_playbooks(playbook_path, hunt_obj, model, params)
+    if not quiet:
+        hunt_obj.display()
+    if write_report:
+        hunt_obj.dump_to_file(f"{work_dir}/hunt.json")
 
 if __name__ == "__main__":
     app()

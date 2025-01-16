@@ -20,7 +20,7 @@ sensai is a Python library and CLI application designed to assist threat hunters
 
 ## **Requirements**
 
-* Python >= 3.9 (3.11 recommended)
+* Python >= 3.10 (3.11 recommended)
 * All dependencies are listed in `requirements.txt`.  
 
 ---
@@ -79,21 +79,95 @@ Refer to Ollama documentation for advanced configuration.
 
 ### **Basic Usage**
 
-* **Analyze a Report from a URL:**
+The `sensai` CLI tool provides three main commands: `analyze`, `benchmark`, and `hunt`.
 
-  ```bash
-  python sensai/cli.py analyze -c <optional css selector> -m qwen2.5:32b <report url>
-  ```
+#### **Analyze**
 
-  Where `-c` is an optional CSS selector to refine the scraping if needed, `-m` specifies the model to use, and `<report url>` is the URL of the report to analyze.
+Analyze threat intelligence and extract Indicators of Compromise (IOCs).
 
-* **Analyze a Local Report File:**
+```bash
+python sensai/cli.py analyze [OPTIONS] SOURCE
+```
 
-  ```bash
-  python sensai/cli.py analyze -m qwen2.5:32b report.pdf
-  ```
+**Options:**
 
-  This example analyzes a local PDF file using the specified model.
+* `-m, --model TEXT`: LLM model to be used for inference. [required]
+* `-s, --chunk-size INTEGER`: Intel document split size. [default: 2600]
+* `-o, --chunk-overlap INTEGER`: Intel document split overlap. [default: 300]
+* `--num-predict INTEGER`: Maximum number of tokens to predict when generating text (-1 = infinite). [default: -1]
+* `--num-ctx INTEGER`: Size of the context window used to generate the next token. [default: 4096]
+* `-c, --css-selector TEXT`: Optional CSS selector value to limit the HTML parsing. [default: "body"]
+* `-d, --output-dir TEXT`: Location of the report directory. [default: "./"]
+* `-i, --write-iocs`: Create a report file. [default: False]
+* `-n, --write-intel-docs`: Create a file with intelligence either scrapped or acquired from file. [default: False]
+* `-y, --write-hypotheses`: Create a file with proposed hypotheses. [default: False]
+
+**Examples:**
+
+* Analyze a report from a URL:
+
+```bash
+python sensai/cli.py analyze -c "body" -m qwen2.5:32b https://example.com/report.html
+```
+
+* Analyze a local report file:
+
+```bash
+python sensai/cli.py analyze -m qwen2.5:32b report.pdf
+```
+
+#### **Benchmark**
+
+Run benchmarks on multiple language models to evaluate performance.
+
+```bash
+python sensai/cli.py benchmark [OPTIONS]
+```
+
+**Options:**
+
+* `-m, --models TEXT`: Comma-separated list of models in the format name:size (e.g., qwen2.5:32b,qwen2.5:14b). [required]
+* `-s, --chunk-size TEXT`: Comma-separated list of chunk_size values (e.g., 2400,3200). [default: "2600"]
+* `-o, --chunk-overlap TEXT`: Comma-separated list of chunk_overlap values (e.g., 150,300). [default: "200"]
+
+**Examples:**
+
+* Benchmark multiple models with various configurations:
+
+```bash
+python sensai/cli.py benchmark -m "qwen2.5:32b,qwen2.5:14b" -s "2400,3200" -o "150,300"
+```
+
+#### **Hunt**
+
+Prepare the hunt plan template based on the given IoCs.
+
+```bash
+python sensai/cli.py hunt [OPTIONS] SOURCE
+```
+
+**Options:**
+
+* `-m, --model TEXT`: LLM model to be used for inference. [required]
+* `-s, --chunk-size INTEGER`: Intel document split size. [default: 3000]
+* `-o, --chunk-overlap INTEGER`: Intel document split overlap. [default: 100]
+* `--num-predict INTEGER`: Maximum number of tokens to predict when generating text (-1 = infinite). [default: -1]
+* `--num-ctx INTEGER`: Size of the context window used to generate the next token. [default: 4096]
+* `-d, --work-dir TEXT`: Location of the workspace directory. [default: "./"]
+* `-c, --scopes TEXT`: Location of the workspace directory.
+* `-p, --playbooks TEXT`: Location of the workspace directory.
+* `-n, --num-hypotheses INTEGER`: Number of hypotheses to generate. [default: 5]
+* `-a, --able`: Enrich hypotheses according to the ABLE methodology. [default: False]
+* `-q, --quiet`: Suppress output. [default: False]
+* `-w, --write-report`: Create a report file 'hunt.json'. [default: False]
+
+**Examples:**
+
+* Prepare a hunt plan from a local file:
+
+```bash
+python sensai/cli.py hunt -m qwen2.5:32b report.csv
+```
 
 ### **Environment Variables**
 
@@ -115,6 +189,8 @@ sensai --help
 ```  
 
 ### **Library Usage**
+
+**WORK IN PROGRESS, API CHANGED** - not yet ready.
 
 You can also use the `thsensai` library directly within your Python code for automated threat intelligence analysis:  
 

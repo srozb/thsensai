@@ -6,8 +6,9 @@ Classes:
     IOCs(BaseModel): A class representing a collection of Indicators of Compromise (IOCs).
 """
 
-import csv
 
+from __future__ import annotations
+import csv
 from collections import defaultdict
 from io import StringIO
 from typing import List, Optional
@@ -72,7 +73,9 @@ class IOC(BaseModel):
 
 class IOCs(BaseModel):
     """
-    A class representing a collection of Indicators of Compromise (IOCs).
+    Represents a collection of Indicators of Compromise (IOCs).
+
+    This class provides methods to extend, deduplicate, and display IOCs.
 
     Attributes:
         iocs (List[IOC]): A list of IOC objects.
@@ -125,7 +128,8 @@ class IOCs(BaseModel):
                 self.deduplicate_and_combine_context()
                 return len(structured_output.iocs)
         except ValidationError:
-            return 0
+            pass
+        return 0
 
     def extend_from_csv(self, iocs_csv: str):
         """
@@ -151,6 +155,24 @@ class IOCs(BaseModel):
 
         self.iocs.extend(iocs)
         self.deduplicate_and_combine_context()
+
+    @classmethod
+    def from_csv(cls, filename: str) -> IOCs:
+        """
+        Create an instance of IOCs from a CSV file.
+
+        Args:
+            filename (str): The path to the CSV file containing IOCs.
+
+        Returns:
+            IOCs: An instance of the IOCs class.
+        """
+        with open(filename, 'r', encoding='utf-8') as file:
+            intel = file.read()
+        iocs_obj = cls(iocs=[])
+        iocs_obj.extend_from_csv(intel)
+        return iocs_obj
+
 
     def read_intel(
         self,
@@ -272,7 +294,6 @@ class IOCs(BaseModel):
             )
             table.add_row(ioc.type, ioc.value, context)
 
-        rp("")
         rp(table)
 
     def write_report(self, source: str, params: dict, output_dir: str):
