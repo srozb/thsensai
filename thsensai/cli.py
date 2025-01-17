@@ -33,6 +33,7 @@ from thsensai.test.test_intel import benchmark_models
 from thsensai.ioc import IOCs
 from thsensai.hyp import Hypotheses
 from thsensai.hunt import Hunt
+from thsensai.infer import LLMInference
 
 app = typer.Typer(help="🏹 Sensai: Threat Hunting and Intelligence Tool")
 
@@ -160,11 +161,9 @@ def analyze(
     params = {
         "chunk_size": chunk_size,
         "chunk_overlap": chunk_overlap,
-        "num_predict": num_predict,
-        "num_ctx": num_ctx,
     }
 
-    iocs_obj = IOCs(iocs=[])
+    llm = LLMInference(model, num_predict, num_ctx)
 
     with Progress(
         TextColumn("[progress.description]{task.description}"),
@@ -173,18 +172,18 @@ def analyze(
         TimeElapsedColumn(),
         MofNCompleteColumn(),
     ) as progress:
-        iocs_obj.read_intel(intel, model, params, progress=progress)
+        iocs_obj = IOCs.from_documents(intel, llm, params, progress=progress)
 
     iocs_obj.display()
 
     if write_hypotheses:
         hypotheses = Hypotheses(hypotheses=[])
-        hypotheses.generate(iocs_obj.as_csv(), model, params)
+        hypotheses.generate(iocs_obj.as_csv(), llm)
         hypotheses.display()
-        hypotheses.write_report(source, params, output_dir)
+        hypotheses.write_report(source, llm, params, output_dir)
 
     if write_iocs:
-        iocs_obj.write_report(source, params, output_dir)
+        iocs_obj.write_report(source, llm, params, output_dir)
 
 
 @app.command()
@@ -272,18 +271,6 @@ def hunt(
         "-m",
         help="LLM model to be used for inference",
     ),
-    chunk_size: int = typer.Option(
-        3000,
-        "--chunk-size",
-        "-s",
-        help="Intel document split size",
-    ),
-    chunk_overlap: int = typer.Option(
-        100,
-        "--chunk-overlap",
-        "-o",
-        help="Intel document split overlap",
-    ),
     num_predict: int = typer.Option(
         -1,
         "--num-predict",
@@ -341,12 +328,6 @@ def hunt(
     Prepare the hunt plan template based on the given IoCs.
     """
 
-    params = {
-        "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
-        "num_predict": num_predict,
-        "num_ctx": num_ctx,
-    }
     # with Progress(
     #     TextColumn("[progress.description]{task.description}"),
     #     BarColumn(),
@@ -356,17 +337,19 @@ def hunt(
     # ) as progress:
     #     iocs = extract_iocs(intel, model, params, progress=progress)
 
+    llm = LLMInference(model, num_predict, num_ctx)
+
     iocs_obj = IOCs.from_csv(source)
     hunt_obj = Hunt.from_iocs(iocs_obj)
-    hunt_obj.generate_meta(model, params)
+    hunt_obj.generate_meta(llm)
     if num_hypotheses > 0:
-        hunt_obj.generate_hypotheses(model, params, num_hypotheses=num_hypotheses)
+        hunt_obj.generate_hypotheses(llm, num_hypotheses=num_hypotheses)
     if enrich_able:
-        hunt_obj.hypotheses.generate_able(model, params)
+        hunt_obj.hypotheses.generate_able(llm)
     if scope_path:
-        hunt_obj.meta.scope.generate_targets(scope_path, hunt_obj, model, params)
+        hunt_obj.meta.scope.generate_targets(scope_path, hunt_obj, llm)
     if playbook_path:
-        hunt_obj.meta.scope.generate_playbooks(playbook_path, hunt_obj, model, params)
+        hunt_obj.meta.scope.generate_playbooks(playbook_path, hunt_obj, llm)
     if not quiet:
         hunt_obj.display()
     if write_report:

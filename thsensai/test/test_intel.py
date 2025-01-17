@@ -215,6 +215,6 @@ def run_extraction_with_timer(
         MofNCompleteColumn(),  # pylint: disable=duplicate-code
     ) as progress:
         iocs_obj = IOCs(iocs=[])
-        iocs_obj.read_intel(intel, model, params, progress)
+        iocs_obj.generate(intel, model, params, progress)
     total_inference_time = time.time() - start_time
     return total_inference_time, iocs_obj

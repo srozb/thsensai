@@ -18,7 +18,7 @@ Hypotheses Attributes:
 """
 
 from __future__ import annotations
-from typing import List, Dict, Optional
+from typing import List, Optional
 from pydantic import BaseModel
 from pydantic import ValidationError
 from rich import print as rp
@@ -40,9 +40,7 @@ class Able(BaseModel):
     def generate(
         self,
         hypothesis: Hypothesis,
-        model: str,
-        params: dict,
-        seed: Optional[int] = None,
+        llm: LLMInference
     ):
         """
         Generate the ABLE method for a given hypothesis.
@@ -79,7 +77,6 @@ class Able(BaseModel):
         }
         ```
         """
-        llm = LLMInference(model, params["num_predict"], params["num_ctx"], seed=seed)
         try:
             structured_output = llm.invoke_model(
                 hypothesis.model_dump_json, query, Able
@@ -127,7 +124,7 @@ class Hypotheses(BaseModel):
 
     hypotheses: List[Hypothesis]
 
-    def generate_able(self, model: str, params: dict, seed: Optional[int] = None):
+    def generate_able(self, llm: LLMInference):
         """
         Enrich the hypotheses with ABLE method details.
 
@@ -141,15 +138,13 @@ class Hypotheses(BaseModel):
             raise ValueError("No hypotheses to enrich with ABLE method.")
         for hypothesis in self.hypotheses:
             able = Able()
-            able.generate(hypothesis, model, params, seed)
+            able.generate(hypothesis, llm)
             hypothesis.able = able
 
     def generate(
         self,
         iocs_csv: str,
-        model: str,
-        params: Dict,
-        seed: Optional[int] = None,
+        llm: LLMInference,
         num_hypotheses: int = 5,
     ):
         """
@@ -196,7 +191,6 @@ class Hypotheses(BaseModel):
         ]
         """
 
-        llm = LLMInference(model, params["num_predict"], params["num_ctx"], seed=seed)
         try:
             structured_output = llm.invoke_model(iocs_csv, query, Hypotheses)
             if structured_output is not None:
@@ -228,8 +222,9 @@ class Hypotheses(BaseModel):
     def write_report(
         self,
         source: str,
+        llm: LLMInference,
         params: dict,
-        output_dir: str,
+        output_dir: str = ".",
     ):
         """
         Generates a report and writes it to a specified output directory.
@@ -239,7 +234,7 @@ class Hypotheses(BaseModel):
             params (dict): A dictionary of parameters used to generate the report.
             output_dir (str): The directory where the report will be saved.
         """
-        report_name = generate_report_name(source, params, "hyp", "json")
+        report_name = generate_report_name(source, llm, params, "hyp", "json")
         ensure_dir_exist(output_dir)
         with open(f"{output_dir}/{report_name}", "w", encoding="utf-8") as f_dst:
             f_dst.write(self.model_dump_json())

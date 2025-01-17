@@ -6,7 +6,6 @@ Classes:
     IOCs(BaseModel): A class representing a collection of Indicators of Compromise (IOCs).
 """
 
-
 from __future__ import annotations
 import csv
 from collections import defaultdict
@@ -94,10 +93,7 @@ class IOCs(BaseModel):
     def extend(
         self,
         chunk_content: str,
-        model: str,
-        num_predict: int,
-        num_ctx: int,
-        seed: int,
+        llm: LLMInference,
     ):
         """
         Extend the current collection of IOCs by processing a chunk of threat intelligence data.
@@ -120,7 +116,6 @@ class IOCs(BaseModel):
             "or extraneous text. Format the response adhering to the schema provided."
         )
 
-        llm = LLMInference(model, num_predict, num_ctx, seed=seed)
         try:
             structured_output = llm.invoke_model(chunk_content, query, IOCs)
             if structured_output is not None:
@@ -167,20 +162,45 @@ class IOCs(BaseModel):
         Returns:
             IOCs: An instance of the IOCs class.
         """
-        with open(filename, 'r', encoding='utf-8') as file:
+        with open(filename, "r", encoding="utf-8") as file:
             intel = file.read()
         iocs_obj = cls(iocs=[])
         iocs_obj.extend_from_csv(intel)
         return iocs_obj
 
+    @classmethod
+    def from_documents(
+        cls,
+        intel: List[Document],
+        llm: LLMInference,
+        params: dict,
+        progress: Optional[Progress] = None,
+    ) -> IOCs:
+        """
+        Extract IOCs from a list of intelligence documents using an LLM model and
+        return a new IOCs instance.
 
-    def read_intel(
+        Args:
+            intel (List[Document]): A list of intelligence documents to process.
+            model (str): The name of the LLM model to use for extraction.
+            params (dict): A dictionary of parameters for the extraction process.
+            progress (Optional[Progress]): A Rich Progress object to display the
+                extraction progress.
+            seed (Optional[int]): Random seed for consistent results.
+
+        Returns:
+            IOCs: A new instance of the IOCs class with the extracted IOCs.
+        """
+        iocs_instance = cls(iocs=[])
+        iocs_instance.generate(intel, llm, params, progress)
+        return iocs_instance
+
+    def generate(
         self,
         intel: List[Document],
-        model: str,
+        llm: LLMInference,
         params: dict,
         progress: Progress,
-        seed: Optional[int] = None,
     ):
         """
         Extract IOCs from a list of intelligence documents using an LLM model.
@@ -207,13 +227,7 @@ class IOCs(BaseModel):
             )
 
         for chunk in chunks:
-            added = self.extend(
-                chunk.page_content,
-                model,
-                params["num_predict"],
-                params["num_ctx"],
-                seed,
-            )
+            added = self.extend(chunk.page_content, llm)
 
             if progress and task_id is not None:
                 progress.advance(task_id)
@@ -296,7 +310,7 @@ class IOCs(BaseModel):
 
         rp(table)
 
-    def write_report(self, source: str, params: dict, output_dir: str):
+    def write_report(self, source: str, llm: LLMInference, params: dict, output_dir: str):
         """
         Write the extracted IOCs to a CSV report file.
 
@@ -308,7 +322,7 @@ class IOCs(BaseModel):
         Returns:
             None: The method writes the report to a CSV file in the specified directory.
         """
-        report_name = generate_report_name(source, params, "ioc", "csv")
+        report_name = generate_report_name(source, llm, params, "ioc", "csv")
         ensure_dir_exist(output_dir)
         with open(f"{output_dir}/{report_name}", "w", encoding="utf-8") as f_dst:
             f_dst.write(self.as_csv())

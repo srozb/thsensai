@@ -29,14 +29,14 @@ vector_store = InMemoryVectorStore(embeddings)
 
 
 def split_docs(
-    docs: List[Document], chunk_size: int = 1000, chunk_overlap: int = 200
+    docs: List[Document], chunk_size: int = 2000, chunk_overlap: int = 200
 ) -> List[Document]:
     """
     Split documents into smaller chunks for processing.
 
     Args:
         docs (List[Document]): List of documents to split.
-        chunk_size (int): Maximum size of each chunk in characters (default is 1000).
+        chunk_size (int): Maximum size of each chunk in characters (default is 2000).
         chunk_overlap (int): Overlap between chunks in characters (default is 200).
 
     Returns:

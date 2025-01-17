@@ -32,9 +32,7 @@ class Scope(BaseModel):
         self,
         scopes_filename: str,
         hunt: Hunt,
-        model: str,
-        params: dict,
-        seed: Optional[int] = None,
+        llm: LLMInference
     ):
         """
         Generate targets based on the provided scoping information.
@@ -67,7 +65,6 @@ class Scope(BaseModel):
             "Temporary class to hold the targets"
             targets: List[str]
 
-        llm = LLMInference(model, params["num_predict"], params["num_ctx"], seed=seed)
         with open(scopes_filename, "r", encoding="utf-8") as f:
             user_scopes = f.read()
         context = f"Available targets:\n```\n{user_scopes}\n```\n\n"
@@ -85,9 +82,7 @@ class Scope(BaseModel):
         self,
         playbooks_filename: str,
         hunt: Hunt,
-        model: str,
-        params: dict,
-        seed: Optional[int] = None,
+        llm: LLMInference
     ):
         """
         Generate playbooks based on the provided playbook information.
@@ -119,7 +114,6 @@ class Scope(BaseModel):
             "Temporary class to hold the playbooks"
             playbooks: List[str]
 
-        llm = LLMInference(model, params["num_predict"], params["num_ctx"], seed=seed)
         with open(playbooks_filename, "r", encoding="utf-8") as f:
             user_playbooks = f.read()
         context = f"Available playbooks:\n```\n{user_playbooks}\n```\n\n"
@@ -144,7 +138,7 @@ class HuntMeta(BaseModel):
     expected_outcome: Optional[str] = None
 
     def generate(
-        self, iocs_csv: str, model: str, params: dict, seed: Optional[int] = None
+        self, iocs_csv: str, llm: LLMInference
     ):
         """
         Generate hunt metadata based on provided IOCs.
@@ -206,7 +200,6 @@ class HuntMeta(BaseModel):
             'breaches and ensure the uninterupted operation of critical systems."'
             "}"
         )
-        llm = LLMInference(model, params["num_predict"], params["num_ctx"], seed=seed)
         try:
             structured_output = llm.invoke_model(iocs_csv, query, HuntMeta)
             if structured_output is not None:
@@ -269,7 +262,7 @@ class Hunt(BaseModel):
             self.iocs.display()
             rp("")
 
-    def generate_meta(self, model: str, params: dict, seed: Optional[int] = None):
+    def generate_meta(self, llm: LLMInference):
         """
         Generate hunt metadata.
 
@@ -280,13 +273,11 @@ class Hunt(BaseModel):
         """
         if self.iocs is None:
             raise ValueError("IOCs must be provided to generate metadata.")
-        self.meta.generate(self.iocs.as_csv(), model, params, seed)
+        self.meta.generate(self.iocs.as_csv(), llm)
 
     def generate_hypotheses(
         self,
-        model: str,
-        params: dict,
-        seed: Optional[int] = None,
+        llm: LLMInference,
         num_hypotheses: int = 5,
     ):
         """
@@ -301,10 +292,10 @@ class Hunt(BaseModel):
         if self.iocs is None:
             raise ValueError("IOCs must be provided to generate hypotheses.")
         self.hypotheses.generate(
-            self.iocs.as_csv(), model, params, seed, num_hypotheses
+            self.iocs.as_csv(), llm, num_hypotheses
         )
 
-    def generate(self, model, params, seed: Optional[int] = None):
+    def generate(self, llm: LLMInference):
         """
         Generate both metadata and hypotheses for the hunt.
 
@@ -313,8 +304,8 @@ class Hunt(BaseModel):
             params (dict): Parameters for the model.
             seed (Optional[int]): Seed for reproducibility.
         """
-        self.generate_meta(model, params, seed)
-        self.generate_hypotheses(model, params, seed)
+        self.generate_meta(llm)
+        self.generate_hypotheses(llm)
 
     def dump_to_file(self, filename: str):
         """

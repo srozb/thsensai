@@ -4,6 +4,7 @@ This module contains shared utility functions for use in other modules.
 
 import os
 from typing import Dict, Optional
+from thsensai.infer import LLMInference
 
 
 def ensure_dir_exist(path):
@@ -34,47 +35,17 @@ def build_prompt(context: str, query: str) -> str:
 
 def generate_report_name(
     source: str,
+    llm: LLMInference,
     params: Dict[str, str],
     report_type: Optional[str] = None,
     extension: Optional[str] = None,
 ) -> str:
     """
-    Generate a unique report name based on the source and extraction parameters.
-
-    Args:
-        source (str): A string representing the source of the intelligence data
-                      (e.g., a URL or file path).
-        params (Dict[str, str]): A dictionary of parameters used for report generation, including:
-            - chunk_size (str): Size of document chunks.
-            - chunk_overlap (str): Overlap size between chunks.
-            - num_ctx (str): Context window size.
-            - num_predict (str): Maximum tokens to predict.
-        report_type (Optional[str]): The type of report (e.g., "ioc", "hyp"). Defaults to None.
-        extension (Optional[str]): The file extension to append to the report name.
-            Defaults to None.
-
-    Returns:
-        str: The generated report name, formatted with the source and parameters.
-
-    Example:
-        >>> source = "https://example.com/threat-report"
-        >>> params = {
-        ...     "chunk_size": "500",
-        ...     "chunk_overlap": "100",
-        ...     "num_ctx": "1024",
-        ...     "num_predict": "256"
-        ... }
-        >>> generate_report_name(source, params)
-        'example_com_threat-report_cs-500_co-100_nc-1024_np-256.csv'
-
-    Notes:
-        The `source` is sanitized by replacing certain characters (e.g., "https://", "/", ".")
-        to make it a valid filename. The parameters are appended to the report name
-        for better identification.
+    Generates a report name based on the specified parameters.
     """
     report_name = report_type + "_" if report_type else ""
     report_name += source.replace("https://", "").replace("/", "_").replace(".", "_")
     report_name += f"_cs-{params['chunk_size']}_co-{params['chunk_overlap']}"
-    report_name += f"_nc-{params['num_ctx']}_np-{params['num_predict']}"
+    report_name += f"_nc-{llm.num_ctx}_np-{llm.num_predict}"
     report_name += f".{extension}"
     return report_name
