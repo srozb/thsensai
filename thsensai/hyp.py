@@ -10,7 +10,8 @@ Hypothesis Attributes:
     Hypothesis (str): The description of the hypothesis.
     Rationale (str): The rationale behind the hypothesis.
     Log_Sources (List[str]): A list of log sources related to the hypothesis.
-    Detection_Techniques (List[str]): A list of detection techniques associated with the hypothesis.
+    Detection_Techniques (List[str]): A list of detection techniques associated 
+        with the hypothesis.
     Priority_Level (str): The priority level of the hypothesis.
 
 Hypotheses Attributes:
@@ -37,11 +38,7 @@ class Able(BaseModel):
     location: str = ""
     evidence: str = ""
 
-    def generate(
-        self,
-        hypothesis: Hypothesis,
-        llm: LLMInference
-    ):
+    def generate(self, hypothesis: Hypothesis, llm: LLMInference):
         """
         Generate the ABLE method for a given hypothesis.
 
@@ -51,32 +48,43 @@ class Able(BaseModel):
             num_ctx (int): Context window size for the LLM input.
             seed (int): Random seed for consistent results.
         """
-        query = """
-        You are a cybersecurity expert specializing in proactive threat hunting and adversary detection. Your task is to analyze a given hypothesis statement and break it down into its critical components using the **ABLE method** (Actor, Behavior, Location, Evidence).
-
-        ### Inputs:
-        - A hypothesis statement related to potential adversary activity or malicious behavior.
-
-        ### Tasks:
-        1. Use the ABLE method to identify the following critical pieces:
-            - Actor: Identify the threat actor or general type of adversary involved (e.g., APT groups, ransomware operators, insiders). If the actor is unknown, infer the most likely profile based on the hypothesis.
-            - Behavior: Define the specific activity or TTPs (Tactics, Techniques, and Procedures) that the threat actor is performing or attempting to perform.
-            - Location: Specify the part(s) of the organization’s infrastructure or network where this behavior is likely to manifest (e.g., endpoints, servers, network perimeter).
-            - Evidence: Detail the required data sources to investigate and describe what observable indicators or anomalies might confirm the hypothesis.
-        2. Ensure Contextual Relevance:
-            - Use domain knowledge to make informed assumptions if the hypothesis lacks explicit details.
-            - Include contextual reasoning to explain the link between the hypothesis and the ABLE components.
-
-        ### Example Output:
-        ```json
-        {
-            "actor": "Cybercriminal group leveraging stolen credentials",
-            "behavior": "Unauthorized access and data exfiltration",
-            "location": "Cloud storage environment (e.g., AWS S3, Azure Blob Storage)",
-            "evidence": "Unusual login patterns from anomalous IPs, access to sensitive files outside of business hours, and high-volume data downloads"
-        }
-        ```
-        """
+        query = (
+            "You are a cybersecurity expert specializing in proactive threat hunting "
+            "and adversary detection. Your task is to analyze a given hypothesis "
+            "statement and break it down into its critical components using the "
+            "**ABLE method** (Actor, Behavior, Location, Evidence).\n\n"
+            "### Inputs:\n"
+            "- A hypothesis statement related to potential adversary activity or "
+            "malicious behavior.\n\n"
+            "### Tasks:\n"
+            "1. Use the ABLE method to identify the following critical pieces:\n"
+            "    - Actor: Identify the threat actor or general type of adversary "
+            "involved (e.g., APT groups, ransomware operators, insiders). If the "
+            "actor is unknown, infer the most likely profile based on the hypothesis.\n"
+            "    - Behavior: Define the specific activity or TTPs (Tactics, "
+            "Techniques, and Procedures) that the threat actor is performing or "
+            "attempting to perform.\n"
+            "    - Location: Specify the part(s) of the organization’s infrastructure "
+            "or network where this behavior is likely to manifest (e.g., endpoints, "
+            "servers, network perimeter).\n"
+            "    - Evidence: Detail the required data sources to investigate and "
+            "describe what observable indicators or anomalies might confirm the hypothesis.\n"
+            "2. Ensure Contextual Relevance:\n"
+            "    - Use domain knowledge to make informed assumptions if the hypothesis "
+            "lacks explicit details.\n"
+            "    - Include contextual reasoning to explain the link between the hypothesis "
+            "and the ABLE components.\n\n"
+            "### Example Output:\n"
+            "```json\n"
+            "{\n"
+            '    "actor": "Cybercriminal group leveraging stolen credentials",\n'
+            '    "behavior": "Unauthorized access and data exfiltration",\n'
+            '    "location": "Cloud storage environment (e.g., AWS S3, Azure Blob Storage)",\n'
+            '    "evidence": "Unusual login patterns from anomalous IPs, access to '
+            'sensitive files outside of business hours, and high-volume data downloads"\n'
+            "}\n"
+            "```\n"
+        )
         try:
             structured_output = llm.invoke_model(
                 hypothesis.model_dump_json, query, Able
@@ -157,39 +165,46 @@ class Hypotheses(BaseModel):
             num_ctx (int): Context window size for the LLM input.
             seed (int): Random seed for consistent results.
         """
-        query = f"""
-        You are a cybersecurity expert assisting in proactive threat hunting. Your task is to create actionable threat hunting hypotheses based on a CSV containing Indicators of Compromise (IOCs) provided as input.
-
-        ### Inputs:
-        The IoCs/TTPs list that includes fields like `indicator_type` (e.g., IP, domain, hash), `indicator_value`, `context`.
-
-        ### Tasks:
-        1. Develop {num_hypotheses} actionable threat hunting hypotheses that leverage these IOCs in a modern enterprise network environment.
-        2. Include examples of how these hypotheses could map to specific log sources (e.g., endpoint logs, DNS traffic, proxy logs, SIEM data).
-
-        ### Output Schema:
-        Return structured output for each hypothesis with the following fields:
-        - `Hypothesis_ID`: A unique identifier for the hypothesis.
-        - `Hypothesis`: A concise statement of the hypothesis.
-        - `Rationale`: Explain the reasoning behind the hypothesis and how it connects to the IOCs.
-        - `Log_Sources`: Suggested log sources for validation.
-        - `Detection_Techniques`: Suggested methods (e.g., correlation rules, anomaly detection) to test the hypothesis.
-        - `Priority_Level`: Rank the hypothesis based on urgency or likelihood of malicious activity.
-
-        ### Example Output:
-        ```json
-        [
-            {{
-                "Hypothesis_ID": "HYP-001",
-                "Hypothesis": "Malicious domain communications observed in DNS logs.",
-                "Rationale": "Several domains are flagged with high confidence scores and were recently active in phishing campaigns.",
-                "Log_Sources": ["DNS query logs", "Proxy logs"],
-                "Detection_Techniques": ["Anomaly detection"],
-                "Priority_Level": "High"
-            }},
-            ...
-        ]
-        """
+        query = (
+            "You are a cybersecurity expert assisting in proactive threat hunting. "
+            "Your task is to create actionable threat hunting hypotheses based "
+            "on a CSV containing Indicators of Compromise (IOCs) provided as input.\n\n"
+            "### Inputs:\n"
+            "The IoCs/TTPs list that includes fields like `indicator_type` "
+            "(e.g., IP, domain, hash), `indicator_value`, `context`.\n\n"
+            "### Tasks:\n"
+            f"1. Develop {num_hypotheses} actionable threat hunting hypotheses that "
+            "leverage these IOCs in a modern enterprise network environment.\n"
+            "2. Include examples of how these hypotheses could map to specific log "
+            "sources (e.g., endpoint logs, DNS traffic, proxy logs, SIEM data).\n\n"
+            "### Output Schema:\n"
+            "Return structured output for each hypothesis with the following fields:\n"
+            "- `Hypothesis_ID`: A unique identifier for the hypothesis.\n"
+            "- `Hypothesis`: A concise statement of the hypothesis.\n"
+            "- `Rationale`: Explain the reasoning behind the hypothesis and how it "
+            "connects to the IOCs.\n"
+            "- `Log_Sources`: Suggested log sources for validation.\n"
+            "- `Detection_Techniques`: Suggested methods (e.g., correlation rules, "
+            "anomaly detection) to test the hypothesis.\n"
+            "- `Priority_Level`: Rank the hypothesis based on urgency or likelihood of "
+            "malicious activity.\n\n"
+            "### Example Output:\n"
+            "```json\n"
+            "[\n"
+            "    {\n"
+            '        "Hypothesis_ID": "HYP-001",\n'
+            '        "Hypothesis": "Malicious domain communications observed in '
+            'DNS logs.",\n'
+            '        "Rationale": "Several domains are flagged with high confidence '
+            'scores and were recently active in phishing campaigns.",\n'
+            '        "Log_Sources": ["DNS query logs", "Proxy logs"],\n'
+            '        "Detection_Techniques": ["Anomaly detection"],\n'
+            '        "Priority_Level": "High"\n'
+            "    },\n"
+            "    ...\n"
+            "]\n"
+            "```"
+        )
 
         try:
             structured_output = llm.invoke_model(iocs_csv, query, Hypotheses)
