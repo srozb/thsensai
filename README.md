@@ -156,8 +156,6 @@ python sensai/cli.py hunt [OPTIONS] SOURCE
 **Options:**
 
 * `-m, --model TEXT`: LLM model to be used for inference. [required]
-* `-s, --chunk-size INTEGER`: Intel document split size. [default: 3000]
-* `-o, --chunk-overlap INTEGER`: Intel document split overlap. [default: 100]
 * `--num-predict INTEGER`: Maximum number of tokens to predict when generating text (-1 = infinite). [default: -1]
 * `--num-ctx INTEGER`: Size of the context window used to generate the next token. [default: 4096]
 * `-d, --work-dir TEXT`: Location of the workspace directory. [default: "./"]
