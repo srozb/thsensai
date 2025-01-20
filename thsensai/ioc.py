@@ -8,6 +8,7 @@ Classes:
 
 from __future__ import annotations
 import csv
+import os
 from collections import defaultdict
 from io import StringIO
 from typing import List, Optional
@@ -16,10 +17,9 @@ from rich.progress import Progress
 from rich import print as rp
 from pydantic import BaseModel, field_validator
 from pydantic import ValidationError
-from langchain_core.documents import Document
 from thsensai.infer import LLMInference
-from thsensai.knowledge import split_docs
-from thsensai.utils import generate_report_name, ensure_dir_exist
+from thsensai.intel import Intel
+from thsensai.utils import generate_report_name
 
 
 class IOC(BaseModel):
@@ -169,11 +169,10 @@ class IOCs(BaseModel):
         return iocs_obj
 
     @classmethod
-    def from_documents(
+    def from_intel(
         cls,
-        intel: List[Document],
+        intel_obj: Intel,
         llm: LLMInference,
-        params: dict,
         progress: Optional[Progress] = None,
     ) -> IOCs:
         """
@@ -181,9 +180,8 @@ class IOCs(BaseModel):
         return a new IOCs instance.
 
         Args:
-            intel (List[Document]): A list of intelligence documents to process.
-            model (str): The name of the LLM model to use for extraction.
-            params (dict): A dictionary of parameters for the extraction process.
+            intel_obj (Intel): An instance of the Intel class containing intelligence data.
+            llm (LLMInference): An instance of the LLMInference class.
             progress (Optional[Progress]): A Rich Progress object to display the
                 extraction progress.
             seed (Optional[int]): Random seed for consistent results.
@@ -192,41 +190,34 @@ class IOCs(BaseModel):
             IOCs: A new instance of the IOCs class with the extracted IOCs.
         """
         iocs_instance = cls(iocs=[])
-        iocs_instance.generate(intel, llm, params, progress)
+        iocs_instance.generate(intel_obj, llm, progress)
         return iocs_instance
 
     def generate(
         self,
-        intel: List[Document],
+        intel_obj: Intel,
         llm: LLMInference,
-        params: dict,
         progress: Progress,
     ):
         """
         Extract IOCs from a list of intelligence documents using an LLM model.
 
         Args:
-            intel (List[Document]): A list of intelligence documents to process.
-            model (str): The name of the LLM model to use for extraction.
-            params (dict): A dictionary of parameters for the extraction process.
+            intel_obj (Intel): An instance of the Intel class containing intelligence data.
+            llm (LLMInference): An instance of the LLMInference class.
             progress (Progress): A Rich Progress object to display the extraction progress.
 
         Returns:
             None: The method updates the IOCs list with the extracted IOCs.
         """
-        chunks = split_docs(
-            intel,
-            chunk_size=params["chunk_size"],
-            chunk_overlap=params["chunk_overlap"],
-        )
         task_id = None
 
         if progress:
             task_id = progress.add_task(
-                "🔎 [green]Extracting IOCs...", total=len(chunks)
+                "🔎 [green]Extracting IOCs...", total=len(intel_obj.content_chunks)
             )
 
-        for chunk in chunks:
+        for chunk in intel_obj.content_chunks:
             added = self.extend(chunk.page_content, llm)
 
             if progress and task_id is not None:
@@ -310,19 +301,19 @@ class IOCs(BaseModel):
 
         rp(table)
 
-    def write_report(self, source: str, llm: LLMInference, params: dict, output_dir: str):
+    def write_report(self, intel_obj: Intel, llm: LLMInference, output_dir: str):
         """
         Write the extracted IOCs to a CSV report file.
 
         Args:
-            source (str): The source identifier for the report.
-            params (dict): A dictionary of parameters used to generate the report.
+            intel_obj (Intel): An instance of the Intel class containing intelligence data.
+            llm: (LLMInference): An instance of the LLMInference class.
             output_dir (str): The directory where the report will be saved.
 
         Returns:
             None: The method writes the report to a CSV file in the specified directory.
         """
-        report_name = generate_report_name(source, llm, params, "ioc", "csv")
-        ensure_dir_exist(output_dir)
+        report_name = generate_report_name(intel_obj.source, llm, "ioc", "csv")
+        os.makedirs(output_dir, exist_ok=True)
         with open(f"{output_dir}/{report_name}", "w", encoding="utf-8") as f_dst:
             f_dst.write(self.as_csv())

@@ -2,41 +2,28 @@
 This module contains shared utility functions for use in other modules.
 """
 
-import os
-from typing import Dict, Optional
+import re
+from typing import Optional
 from thsensai.infer import LLMInference
+from thsensai.intel import Intel
 
-
-def ensure_dir_exist(path):
+def slugify(value: str) -> str:
     """
-    Ensures that the directory at the specified path exists. If the directory
-    does not exist, it is created.
+    Convert a string to a slug by replacing non-alphanumeric characters with hyphens.
 
     Args:
-        path (str): The path to the directory to check or create.
-    """
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-
-def build_prompt(context: str, query: str) -> str:
-    """
-    Construct a prompt by combining a given context and query.
-
-    Args:
-        context (str): The contextual information to include in the prompt.
-        query (str): The query or question to append to the context.
+        value (str): The string to slugify.
 
     Returns:
-        str: A formatted string containing the context and query.
+        str: The slugified string.
     """
-    return f"Use the following context:\n\n```\n{context}\n```\n\n{query}"
+    value = re.sub(r"[^\w\s-]", "", value).strip().lower()
+    return re.sub(r"[-\s]+", "-", value)
 
 
 def generate_report_name(
-    source: str,
+    intel_obj: Intel,
     llm: LLMInference,
-    params: Dict[str, str],
     report_type: Optional[str] = None,
     extension: Optional[str] = None,
 ) -> str:
@@ -44,8 +31,8 @@ def generate_report_name(
     Generates a report name based on the specified parameters.
     """
     report_name = report_type + "_" if report_type else ""
-    report_name += source.replace("https://", "").replace("/", "_").replace(".", "_")
-    report_name += f"_cs-{params['chunk_size']}_co-{params['chunk_overlap']}"
+    report_name += slugify(intel_obj.source.replace("https://", ""))
+    report_name += f"_cs-{intel_obj.chunk_size}_co-{intel_obj.chunk_overlap}"
     report_name += f"_nc-{llm.num_ctx}_np-{llm.num_predict}"
     report_name += f".{extension}"
     return report_name

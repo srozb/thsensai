@@ -28,7 +28,7 @@ from rich.progress import (
     TaskProgressColumn,
 )
 
-from thsensai.knowledge import acquire_intel, save_docs_to_disk
+from thsensai.intel import Intel
 from thsensai.test.test_intel import benchmark_models
 from thsensai.ioc import IOCs
 from thsensai.hyp import Hypotheses
@@ -150,18 +150,17 @@ def analyze(
 
     """
     try:
-        intel = acquire_intel(source, css_selector)
-    except Exception as e:
+        intel_obj = Intel.from_source(source, css_selector)
+    except Exception as e:  # This could be moved to handle exceptions within from_source()
         rp(f"[bold red]Error acquiring intelligence: {e}[/bold red]")
         raise typer.Exit(code=1)
 
-    if write_intel:
-        save_docs_to_disk(intel, output_dir, source)
+    intel_obj.chunk_size = chunk_size
+    intel_obj.chunk_overlap = chunk_overlap
+    intel_obj.split_content()
 
-    params = {
-        "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
-    }
+    if write_intel:
+        intel_obj.save_to_disk(output_dir)
 
     llm = LLMInference(model, num_predict, num_ctx)
 
@@ -172,7 +171,7 @@ def analyze(
         TimeElapsedColumn(),
         MofNCompleteColumn(),
     ) as progress:
-        iocs_obj = IOCs.from_documents(intel, llm, params, progress=progress)
+        iocs_obj = IOCs.from_intel(intel_obj, llm, progress)
 
     iocs_obj.display()
 
@@ -180,10 +179,10 @@ def analyze(
         hypotheses = Hypotheses(hypotheses=[])
         hypotheses.generate(iocs_obj.as_csv(), llm)
         hypotheses.display()
-        hypotheses.write_report(source, llm, params, output_dir)
+        hypotheses.write_report(intel_obj, llm, output_dir)
 
     if write_iocs:
-        iocs_obj.write_report(source, llm, params, output_dir)
+        iocs_obj.write_report(intel_obj, llm, output_dir)
 
 
 @app.command()

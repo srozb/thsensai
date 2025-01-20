@@ -5,6 +5,7 @@ Test cases for measuring performance of the IOC extractor.
 import time
 from typing import List, Tuple, Dict
 from io import StringIO
+from langchain_core.documents import Document
 from rich.table import Table
 from rich import box
 from rich.console import Console
@@ -17,8 +18,9 @@ from rich.progress import (
     MofNCompleteColumn,
 )
 
-from thsensai.knowledge import acquire_intel
+from thsensai.intel import Intel
 from thsensai.test.test_cases import test_cases
+from thsensai.infer import LLMInference
 from thsensai.ioc import IOCs
 
 
@@ -155,8 +157,8 @@ def run_benchmarks_for_configuration(
         target = (source, selector) if selector else (source,)
         keywords = set(test_case.get("keywords", []))
 
-        intel = acquire_intel(*target)
-        scraped_size = calculate_scraped_size(intel)
+        intel_obj = Intel.from_source(*target)
+        scraped_size = calculate_scraped_size(intel_obj.content)
 
         params = {
             "chunk_size": chunk_size,
@@ -164,7 +166,7 @@ def run_benchmarks_for_configuration(
             "num_predict": -1,
             "num_ctx": 4096,
         }
-        total_inference_time, iocs = run_extraction_with_timer(intel, model, params)
+        total_inference_time, iocs = run_extraction_with_timer(intel_obj, model, params)
         score = rate_extraction(iocs, keywords)
 
         table.add_row(
@@ -178,7 +180,7 @@ def run_benchmarks_for_configuration(
     return table
 
 
-def calculate_scraped_size(intel: List) -> int:
+def calculate_scraped_size(intel: List[Document]) -> int:
     """
     Calculate the total scraped size from acquired intelligence.
 
@@ -192,7 +194,7 @@ def calculate_scraped_size(intel: List) -> int:
 
 
 def run_extraction_with_timer(
-    intel: List, model: str, params: Dict
+    intel_obj: Intel, model: str, params: Dict
 ) -> Tuple[float, IOCs]:
     """
     Run the extraction and measure the total inference time.
@@ -205,6 +207,9 @@ def run_extraction_with_timer(
     Returns:
         Tuple[float, IOCs]: Total inference time and extracted IOCs.
     """
+    llm = LLMInference(
+        model, num_predict=params["num_predict"], num_ctx=params["num_ctx"], seed=1234
+    )
     start_time = time.time()
     with Progress(
         TextColumn(f"Model: {model}"),
@@ -214,7 +219,6 @@ def run_extraction_with_timer(
         TimeElapsedColumn(),
         MofNCompleteColumn(),  # pylint: disable=duplicate-code
     ) as progress:
-        iocs_obj = IOCs(iocs=[])
-        iocs_obj.generate(intel, model, params, progress)
+        iocs_obj = IOCs.from_documents(intel_obj, llm, progress)
     total_inference_time = time.time() - start_time
     return total_inference_time, iocs_obj

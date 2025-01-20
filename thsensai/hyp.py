@@ -19,12 +19,14 @@ Hypotheses Attributes:
 """
 
 from __future__ import annotations
+import os
 from typing import List, Optional
 from pydantic import BaseModel
 from pydantic import ValidationError
 from rich import print as rp
 from thsensai.infer import LLMInference
-from thsensai.utils import generate_report_name, ensure_dir_exist
+from thsensai.intel import Intel
+from thsensai.utils import generate_report_name
 
 
 class Able(BaseModel):
@@ -236,20 +238,19 @@ class Hypotheses(BaseModel):
 
     def write_report(
         self,
-        source: str,
+        intel_obj: Intel,
         llm: LLMInference,
-        params: dict,
         output_dir: str = ".",
     ):
         """
         Generates a report and writes it to a specified output directory.
 
         Args:
-            source (str): The source identifier for the report.
-            params (dict): A dictionary of parameters used to generate the report.
+            intel_obj (Intel): The Intel object used to generate the hypotheses.
+            llm: The LLMInference object used for hypothesis generation.
             output_dir (str): The directory where the report will be saved.
         """
-        report_name = generate_report_name(source, llm, params, "hyp", "json")
-        ensure_dir_exist(output_dir)
+        report_name = generate_report_name(intel_obj, llm, "hyp", "json")
+        os.makedirs(output_dir, exist_ok=True)
         with open(f"{output_dir}/{report_name}", "w", encoding="utf-8") as f_dst:
             f_dst.write(self.model_dump_json())

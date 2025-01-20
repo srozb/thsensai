@@ -17,11 +17,11 @@ sensai is a Python library and CLI application designed to assist threat hunters
 
 ## **Showcase**
 
-**IOC Extraction**
+### IOC Extraction
 
 ![Extraction screenshot](docs/extraction.png)
 
-**Hunt plan**
+### Hunt plan
 
 ![Hunting screenshot](docs/hunting.png)
 
@@ -200,7 +200,23 @@ sensai --help
 You can also use the `thsensai` library directly within your Python code for automated threat intelligence analysis:  
 
 ```python
-from thsensai import hunter
+from thsensai.intel import Intel
+from thsensai.ioc import IOCs
+from thsensai.infer import LLMInference
+
+#scape web or acquire intel from file
+intel_obj = Intel.from_source(source, css_selector)
+
+#chunk the intel documents
+intel_obj.chunk_size = 2000
+intel_obj.chunk_overlap = 200
+intel_obj.split_content()
+
+#pass the intel to LLM for processing
+llm = LLMInference(model, num_predict, num_ctx)
+iocs_obj = IOCs.from_intel(intel_obj, llm, progress)
+
+iocs_obj.display()
 ```
 
 This allows you to programmatically integrate threat hunting and intelligence analysis capabilities into your own projects.  
