@@ -155,9 +155,7 @@ def analyze(
         rp(f"[bold red]Error acquiring intelligence: {e}[/bold red]")
         raise typer.Exit(code=1)
 
-    intel_obj.chunk_size = chunk_size
-    intel_obj.chunk_overlap = chunk_overlap
-    intel_obj.split_content()
+    intel_obj.split_content(chunk_size, chunk_overlap)
 
     if write_intel:
         intel_obj.save_to_disk(output_dir)

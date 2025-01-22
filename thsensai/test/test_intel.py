@@ -109,7 +109,7 @@ def process_model_benchmark(
     """
     table = create_benchmark_table(model)
     for chunk_size in chunk_sizes:
-        for chunk_overlap in chunk_overlaps:
+        for chunk_overlap in chunk_overlaps: # iterate over test_cases first
             table = run_benchmarks_for_configuration(
                 table, model, chunk_size, chunk_overlap
             )
@@ -158,6 +158,7 @@ def run_benchmarks_for_configuration(
         keywords = set(test_case.get("keywords", []))
 
         intel_obj = Intel.from_source(*target)
+        intel_obj.split_content(chunk_size, chunk_overlap)
         scraped_size = calculate_scraped_size(intel_obj.content)
 
         params = {
@@ -219,6 +220,6 @@ def run_extraction_with_timer(
         TimeElapsedColumn(),
         MofNCompleteColumn(),  # pylint: disable=duplicate-code
     ) as progress:
-        iocs_obj = IOCs.from_documents(intel_obj, llm, progress)
+        iocs_obj = IOCs.from_intel(intel_obj, llm, progress)
     total_inference_time = time.time() - start_time
     return total_inference_time, iocs_obj

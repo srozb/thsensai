@@ -63,13 +63,17 @@ class Intel(BaseModel):
         intel_instance.acquire_intel()
         return intel_instance
 
-    def split_content(self):
+    def split_content(self, chunk_size: Optional[int] = None, chunk_overlap: Optional[int] = None):
         """
         Split the content into smaller chunks for processing.
 
         Returns:
             List[Document]: List of split document chunks.
         """
+        if chunk_size:
+            self.chunk_size = chunk_size
+        if chunk_overlap:
+            self.chunk_overlap = chunk_overlap
         if self.content:
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=self.chunk_size,
