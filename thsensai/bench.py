@@ -19,7 +19,7 @@ from rich.progress import (
 )
 
 from thsensai.intel import Intel
-from thsensai.test.test_cases import test_cases
+from thsensai.test.benchmark.cases import test_cases
 from thsensai.infer import LLMInference
 from thsensai.ioc import IOCs
 
