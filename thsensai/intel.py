@@ -11,6 +11,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from docling.document_converter import DocumentConverter
 from thsensai.web_scraper import scrape_web
 
+
 class Intel(BaseModel):
     """
     A class to represent threat intelligence data.
@@ -22,11 +23,12 @@ class Intel(BaseModel):
         chunk_size (int): The size of each chunk in characters.
         chunk_overlap (int): The overlap between chunks in characters.
     """
+
     source: str
     css_selector: Optional[str] = None
     content: Optional[List[Document]] = None
     content_chunks: Optional[List[Document]] = None
-    chunk_size: int = 2000
+    chunk_size: int = 2400
     chunk_overlap: int = 200
 
     def acquire_intel(self):
@@ -35,9 +37,6 @@ class Intel(BaseModel):
 
         If the source is a URL, the function will scrape the web page. If it's a local file,
         the function will convert the document to text.
-
-        Returns:
-            List[Document]: List of `Document` objects containing the extracted content.
         """
         if self.source.startswith("http://") or self.source.startswith("https://"):
             self.content = scrape_web((self.source,), (self.css_selector,))
@@ -45,7 +44,9 @@ class Intel(BaseModel):
             converter = DocumentConverter()
             result = converter.convert(self.source)
             intel = result.document.export_to_text()
-            self.content = [Document(page_content=intel, metadata={"source": self.source})]
+            self.content = [
+                Document(page_content=intel, metadata={"source": self.source})
+            ]
 
     @classmethod
     def from_source(cls, source: str, css_selector: Optional[str] = None) -> Intel:
@@ -63,17 +64,18 @@ class Intel(BaseModel):
         intel_instance.acquire_intel()
         return intel_instance
 
-    def split_content(self, chunk_size: Optional[int] = None, chunk_overlap: Optional[int] = None):
+    def split_content(
+        self, chunk_size: Optional[int] = None, chunk_overlap: Optional[int] = None
+    ):
         """
-        Split the content into smaller chunks for processing.
+        Split the content into chunks of a given size with a given overlap.
 
-        Returns:
-            List[Document]: List of split document chunks.
+        Args:
+            chunk_size (Optional[int]): The size of each chunk in characters.
+            chunk_overlap (Optional[int]): The overlap between chunks in characters.
         """
-        if chunk_size:
-            self.chunk_size = chunk_size
-        if chunk_overlap:
-            self.chunk_overlap = chunk_overlap
+        self.chunk_size = chunk_size or self.chunk_size
+        self.chunk_overlap = chunk_overlap or self.chunk_overlap
         if self.content:
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=self.chunk_size,

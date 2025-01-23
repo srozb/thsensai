@@ -29,7 +29,7 @@ from rich.progress import (
 )
 
 from thsensai.intel import Intel
-from thsensai.test.test_intel import benchmark_models
+from thsensai.bench import benchmark_models
 from thsensai.ioc import IOCs
 from thsensai.hyp import Hypotheses
 from thsensai.hunt import Hunt
