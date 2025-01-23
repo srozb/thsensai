@@ -21,6 +21,12 @@ jobs:
       with:
         python-version: '3.11'
 
+    - name: Generate Changelog
+      id: changelog
+      run: |
+        pip install git+https://github.com/github-changelog-generator/github-changelog-generator
+        github_changelog_generator -t ${{ secrets.GITHUB_TOKEN }} --since-tag $(git describe --tags --abbrev=0 HEAD^)
+
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
@@ -29,18 +35,6 @@ jobs:
       with:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
-        body: |
-          ## Changes
-          - Description of changes in this release.
+        body: ${{ steps.changelog.outputs.changelog }}
         draft: false
         prerelease: false
-
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: path/to/your/asset.zip
-        asset_name: asset.zip
-        asset_content_type: application/zip
