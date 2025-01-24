@@ -252,7 +252,7 @@ class IOCs(BaseModel):
                     ioc.context.strip() for ioc in iocs_group if ioc.context.strip()
                 )
                 # Create a new IOC with the combined context
-                combined_ioc = iocs_group[0].copy(update={"context": combined_context})
+                combined_ioc = iocs_group[0].model_copy(update={"context": combined_context})
                 deduplicated_iocs.append(combined_ioc)
             else:
                 # If no duplicates, add the IOC as is
