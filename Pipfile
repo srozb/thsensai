@@ -15,6 +15,7 @@ docling = "*"
 langchain-ollama = "*"
 requests = "*"
 rich = "*"
+python-slugify = "*"
 
 [dev-packages]
 pytest = "*"
