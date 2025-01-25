@@ -313,7 +313,7 @@ class IOCs(BaseModel):
         Returns:
             None: The method writes the report to a CSV file in the specified directory.
         """
-        report_name = generate_report_name(intel_obj.source, llm, "ioc", "csv")
+        report_name = generate_report_name(intel_obj, llm, "ioc", "csv")
         os.makedirs(output_dir, exist_ok=True)
         with open(f"{output_dir}/{report_name}", "w", encoding="utf-8") as f_dst:
             f_dst.write(self.as_csv())
