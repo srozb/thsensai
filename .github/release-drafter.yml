@@ -1,0 +1,27 @@
+name-template: 'v$NEXT_PATCH_VERSION'
+tag-template: 'v$NEXT_PATCH_VERSION'
+categories:
+  - title: '🚀 Features'
+    labels:
+      - feature
+  - title: '🐛 Bug Fixes'
+    labels:
+      - bug
+  - title: '🧹 Maintenance'
+    labels:
+      - maintenance
+change-template: '- $TITLE @${AUTHOR}'
+version-resolver:
+  major:
+    commits:
+      - pattern: '^BREAKING'
+  minor:
+    commits:
+      - pattern: '^feat'
+  patch:
+    commits:
+      - pattern: '^fix'
+template: |
+  ## What's Changed
+
+  $CHANGES
