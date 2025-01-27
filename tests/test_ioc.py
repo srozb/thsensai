@@ -1,10 +1,10 @@
 # pylint: disable=missing-module-docstring, missing-function-docstring, redefined-outer-name
 
 import pytest
+from rich.progress import Progress
 from thsensai.ioc import IOC, IOCs
 from thsensai.infer import LLMInference
 from thsensai.intel import Intel
-from rich.progress import Progress
 
 
 @pytest.fixture
@@ -113,7 +113,7 @@ def test_iocs_extend(mocker, sample_iocs):
     assert sample_iocs.iocs[-1].context == "New context"
 
 
-def test_iocs_from_csv(mocker, tmp_path):
+def test_iocs_from_csv(tmp_path):
     csv_content = (
         "type,value,context\n"
         "IP,192.168.1.1,Sample context\n"
